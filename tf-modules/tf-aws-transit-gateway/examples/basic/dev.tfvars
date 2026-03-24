@@ -1,0 +1,19 @@
+aws_region  = "us-east-1"
+name        = "platform-hub"
+environment = "dev"
+project     = "networking"
+owner       = "network-team"
+cost_center = "CC-100"
+vpc_attachments = {
+  shared_services = {
+    vpc_id     = "vpc-shared"
+    subnet_ids = ["subnet-ss-a", "subnet-ss-b"]
+  }
+  app_dev = {
+    vpc_id     = "vpc-app"
+    subnet_ids = ["subnet-app-a", "subnet-app-b"]
+  }
+}
+tags = {
+  Environment = "dev"
+}

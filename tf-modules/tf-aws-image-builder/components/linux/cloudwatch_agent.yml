@@ -1,0 +1,38 @@
+name: InstallCloudWatchAgentLinux
+description: Install and configure Amazon CloudWatch Agent
+schemaVersion: 1.0
+parameters:
+  - CWAgentConfigSsmParam:
+      type: string
+      description: "SSM Parameter Store path for CloudWatch agent config JSON"
+      default: "AmazonCloudWatch-linux"
+phases:
+  - name: build
+    steps:
+      - name: InstallCWAgent
+        action: ExecuteBash
+        inputs:
+          commands:
+            - |
+              set -e
+              ARCH=$(uname -m)
+              if [[ "$ARCH" == "x86_64" ]]; then PKG="amazon-cloudwatch-agent.rpm"; ARCH_S="amd64"; else PKG="amazon-cloudwatch-agent-arm64.rpm"; ARCH_S="arm64"; fi
+              REGION=$(curl -s http://169.254.169.254/latest/meta-data/placement/region)
+              rpm -Uvh "https://s3.${REGION}.amazonaws.com/amazoncloudwatch-agent-${REGION}/amazon_linux/amd64/latest/amazon-cloudwatch-agent.rpm" || \
+              yum install -y amazon-cloudwatch-agent
+
+      - name: FetchConfig
+        action: ExecuteBash
+        inputs:
+          commands:
+            - |
+              REGION=$(curl -s http://169.254.169.254/latest/meta-data/placement/region)
+              /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+                -a fetch-config -m ec2 -s \
+                -c "ssm:{{ CWAgentConfigSsmParam }}" || true
+
+      - name: EnableService
+        action: ExecuteBash
+        inputs:
+          commands:
+            - systemctl enable amazon-cloudwatch-agent || true

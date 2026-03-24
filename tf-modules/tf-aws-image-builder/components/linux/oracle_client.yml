@@ -1,0 +1,63 @@
+name: InstallOracleClientLinux
+description: Install Oracle Instant Client (from S3 or Oracle repo)
+schemaVersion: 1.0
+parameters:
+  - OracleClientVersion:
+      type: string
+      description: "Oracle Instant Client version (e.g. 21.12)"
+      default: "21.12"
+  - OracleClientS3Bucket:
+      type: string
+      description: "S3 bucket containing Oracle RPM packages. Empty = download from Oracle CDN."
+      default: ""
+phases:
+  - name: build
+    steps:
+      - name: InstallDependencies
+        action: ExecuteBash
+        inputs:
+          commands:
+            - yum install -y libaio libaio-devel unzip
+
+      - name: InstallOracleInstantClient
+        action: ExecuteBash
+        inputs:
+          commands:
+            - |
+              set -e
+              OCI_VERSION="{{ OracleClientVersion }}"
+              S3_BUCKET="{{ OracleClientS3Bucket }}"
+              REGION=$(curl -s http://169.254.169.254/latest/meta-data/placement/region)
+              MAJOR=$(echo "$OCI_VERSION" | cut -d. -f1)
+
+              if [ -n "$S3_BUCKET" ]; then
+                # Download from internal S3
+                aws s3 cp "s3://${S3_BUCKET}/oracle/instantclient-basiclite-linux.x64-${OCI_VERSION}.zip" /tmp/
+                aws s3 cp "s3://${S3_BUCKET}/oracle/instantclient-sqlplus-linux.x64-${OCI_VERSION}.zip"   /tmp/ || true
+                unzip -o /tmp/instantclient-basiclite-linux.x64-${OCI_VERSION}.zip -d /opt/oracle/
+                unzip -o /tmp/instantclient-sqlplus-linux.x64-${OCI_VERSION}.zip   -d /opt/oracle/ || true
+              else
+                # Oracle public yum repo
+                curl -sSL "https://yum.oracle.com/RPM-GPG-KEY-oracle-ol9" -o /etc/pki/rpm-gpg/RPM-GPG-KEY-oracle
+                cat > /etc/yum.repos.d/oracle-instantclient.repo << EOF
+              [oracle-instantclient]
+              name=Oracle Instant Client
+              baseurl=https://yum.oracle.com/repo/OracleLinux/OL9/oracle/instantclient/x86_64
+              gpgcheck=1
+              gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-oracle
+              enabled=1
+              EOF
+                yum install -y oracle-instantclient${MAJOR}-basiclite oracle-instantclient${MAJOR}-sqlplus || true
+              fi
+
+      - name: ConfigureLinkerPath
+        action: ExecuteBash
+        inputs:
+          commands:
+            - |
+              ORACLE_LIB=$(find /opt/oracle -name "libclntsh.so*" | head -1 | xargs dirname 2>/dev/null || echo "")
+              if [ -n "$ORACLE_LIB" ]; then
+                echo "$ORACLE_LIB" > /etc/ld.so.conf.d/oracle-instantclient.conf
+                ldconfig
+              fi
+              echo 'export LD_LIBRARY_PATH=/opt/oracle/instantclient_$(ls /opt/oracle | grep instantclient | head -1 | cut -d_ -f2):$LD_LIBRARY_PATH' >> /etc/profile.d/oracle.sh

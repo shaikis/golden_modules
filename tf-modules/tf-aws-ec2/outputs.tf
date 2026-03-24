@@ -1,0 +1,10 @@
+output "instance_id" { value = var.use_spot ? null : aws_instance.this.id }
+output "instance_arn" { value = var.use_spot ? null : aws_instance.this.arn }
+output "private_ip" { value = var.use_spot ? null : aws_instance.this.private_ip }
+output "public_ip" { value = var.use_spot ? null : aws_instance.this.public_ip }
+output "private_dns" { value = var.use_spot ? null : aws_instance.this.private_dns }
+output "public_dns" { value = var.use_spot ? null : aws_instance.this.public_dns }
+output "availability_zone" { value = var.use_spot ? null : aws_instance.this.availability_zone }
+output "subnet_id" { value = var.use_spot ? null : aws_instance.this.subnet_id }
+output "eip_public_ip" { value = length(aws_eip.this) > 0 ? aws_eip.this[0].public_ip : null }
+output "spot_instance_id" { value = var.use_spot ? aws_spot_instance_request.this[0].spot_instance_id : null }

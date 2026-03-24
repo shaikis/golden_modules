@@ -1,0 +1,27 @@
+---
+# Example Ansible site.yml — replace with your actual playbook
+- name: Golden Image Hardening
+  hosts: localhost
+  connection: local
+  become: true
+  roles:
+    - hardening
+    - cloudwatch-agent
+    - ssm-agent
+
+  tasks:
+    - name: Install common packages
+      package:
+        name:
+          - curl
+          - wget
+          - unzip
+          - jq
+        state: present
+      when: ansible_os_family != "Windows"
+
+    - name: Mark Ansible completion
+      file:
+        path: /etc/ansible_done
+        state: touch
+      when: ansible_os_family != "Windows"

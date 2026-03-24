@@ -1,0 +1,7 @@
+---
+# Ansible Galaxy roles required by the playbook
+roles:
+  - name: devsec.hardening
+    version: ">=8.0.0"
+  - name: geerlingguy.cloudwatch-agent
+    version: ">=1.0.0"

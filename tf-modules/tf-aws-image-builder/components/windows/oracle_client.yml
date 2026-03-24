@@ -1,0 +1,41 @@
+name: InstallOracleClientWindows
+description: Install Oracle Instant Client on Windows Server
+schemaVersion: 1.0
+parameters:
+  - OracleClientVersion:
+      type: string
+      description: "Oracle Instant Client version (e.g. 21.12.0.0)"
+      default: "21.12.0.0"
+  - OracleClientS3Bucket:
+      type: string
+      description: "S3 bucket containing Oracle zip files. Empty = download from Oracle CDN."
+      default: ""
+phases:
+  - name: build
+    steps:
+      - name: InstallOracleInstantClient
+        action: ExecutePowerShell
+        inputs:
+          commands:
+            - |
+              $Version  = "{{ OracleClientVersion }}"
+              $S3Bucket = "{{ OracleClientS3Bucket }}"
+              $InstallDir = "C:\Oracle\instantclient"
+              New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
+
+              if ($S3Bucket -ne "") {
+                $Region = (Invoke-WebRequest -Uri "http://169.254.169.254/latest/meta-data/placement/region" -UseBasicParsing).Content
+                & "C:\Program Files\Amazon\AWSCLIV2\aws.exe" s3 cp "s3://${S3Bucket}/oracle/instantclient-basiclite-windows.x64-${Version}.zip" "$env:TEMP\oci.zip" --region $Region
+              } else {
+                $MajorMinor = ($Version -split "\.")[0..1] -join "."
+                Invoke-WebRequest -Uri "https://download.oracle.com/otn_software/nt/instantclient/${Version -replace '\.','/'}/instantclient-basiclite-windows.x64-${Version}dbru.zip" -OutFile "$env:TEMP\oci.zip"
+              }
+
+              Expand-Archive -Path "$env:TEMP\oci.zip" -DestinationPath "C:\Oracle" -Force
+              $OciDir = Get-ChildItem "C:\Oracle" -Filter "instantclient_*" | Select-Object -First 1 -ExpandProperty FullName
+
+              # Add to system PATH
+              $OldPath = [System.Environment]::GetEnvironmentVariable("PATH","Machine")
+              if (-not $OldPath.Contains($OciDir)) {
+                [System.Environment]::SetEnvironmentVariable("PATH", "$OldPath;$OciDir", "Machine")
+              }
