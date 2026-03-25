@@ -1,0 +1,36 @@
+name: InstallDynatraceLinux
+description: Install Dynatrace OneAgent on Amazon Linux / RHEL
+schemaVersion: 1.0
+parameters:
+  - DynatraceEnvUrl:
+      type: string
+      description: "Dynatrace environment URL (e.g. https://abc12345.live.dynatrace.com)"
+  - DynatraceApiToken:
+      type: string
+      description: "PaaS token from Dynatrace Settings > Integration > Platform as a Service"
+phases:
+  - name: build
+    steps:
+      - name: DownloadAndInstall
+        action: ExecuteBash
+        inputs:
+          commands:
+            - |
+              set -e
+              DT_URL="{{ DynatraceEnvUrl }}"
+              DT_TOKEN="{{ DynatraceApiToken }}"
+              curl -sSL "${DT_URL}/api/v1/deployment/installer/agent/unix/default/latest?Api-Token=${DT_TOKEN}&arch=x86&flavor=default" \
+                   -o /tmp/Dynatrace-OneAgent.sh
+              chmod +x /tmp/Dynatrace-OneAgent.sh
+              /tmp/Dynatrace-OneAgent.sh --set-server="${DT_URL}" \
+                                         --set-tenant-token="${DT_TOKEN}" \
+                                         --set-infra-only=false
+              systemctl enable oneagenthelper || true
+
+  - name: validate
+    steps:
+      - name: CheckService
+        action: ExecuteBash
+        inputs:
+          commands:
+            - systemctl is-active oneagenthelper || echo "OneAgent not yet active (normal during image build)"

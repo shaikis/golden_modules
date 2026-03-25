@@ -1,0 +1,81 @@
+{
+    "StartAt": "Restore",
+    "States": {
+        "Restore": {
+            "Type": "Task",
+            "Resource": "${restore_lambda_arn}",
+            "Next": "Wait"
+        },
+        "Wait": {
+            "Type": "Wait",
+            "Seconds": 30,
+            "Next": "Status"
+        },
+        "Status": {
+            "Type": "Task",
+            "Resource": "${status_lambda_arn}",
+            "Next": "Ready?"
+        },
+        "Ready?": {
+            "Type": "Choice",
+            "Choices": [
+                {
+                    "Variable": "$.status",
+                    "StringEquals": "available",
+                    "Next": "Validate"
+                }
+            ],
+            "Default": "Wait"
+        },
+        "Validate": {
+            "Type": "Task",
+            "Resource": "${validate_lambda_arn}",
+            "Next": "Mode"
+        },
+        "Mode": {
+            "Type": "Choice",
+            "Choices": [
+                {
+                    "Variable": "$.mode",
+                    "StringEquals": "restore",
+                    "Next": "Cleanup"
+                },
+                {
+                    "Variable": "$.mode",
+                    "StringEquals": "cutover",
+                    "Next": "Cutover"
+                }
+            ]
+        },
+        "Cleanup": {
+            "Type": "Task",
+            "Resource": "${cleanup_lambda_arn}",
+            "End": true
+        },
+        "Cutover": {
+            "Type": "Choice",
+            "Choices": [
+                {
+                    "Variable": "$.resource_type",
+                    "StringEquals": "rds",
+                    "Next": "RDS"
+                },
+                {
+                    "Variable": "$.resource_type",
+                    "StringEquals": "ec2",
+                    "Next": "EC2"
+                }
+            ]
+        },
+        "RDS": {
+            "Type": "Task",
+            "Resource": "${cutover_rds_lambda_arn}",
+            "End": true
+        },
+        "EC2": {
+            "Type": "Task",
+            "Resource": "${cutover_ec2_lambda_arn}",
+            "End": true
+        }
+    }
+}

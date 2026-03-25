@@ -1,0 +1,48 @@
+name: InstallGrafanaAgentLinux
+description: Install Grafana Agent (metrics/logs/traces forwarder) on Linux
+schemaVersion: 1.0
+parameters:
+  - GrafanaAgentVersion:
+      type: string
+      description: "Grafana Agent version (e.g. v0.40.0)"
+      default: "v0.40.0"
+  - GrafanaConfigS3Path:
+      type: string
+      description: "s3://bucket/path/to/agent-config.yaml — downloaded at boot via user_data or SSM"
+      default: ""
+phases:
+  - name: build
+    steps:
+      - name: InstallGrafanaAgent
+        action: ExecuteBash
+        inputs:
+          commands:
+            - |
+              set -e
+              VERSION="{{ GrafanaAgentVersion }}"
+              curl -sSL "https://github.com/grafana/agent/releases/download/${VERSION}/grafana-agent-linux-amd64.zip" \
+                   -o /tmp/grafana-agent.zip
+              unzip -o /tmp/grafana-agent.zip -d /tmp/
+              install -o root -g root -m 755 /tmp/grafana-agent-linux-amd64 /usr/local/bin/grafana-agent
+
+      - name: CreateSystemdUnit
+        action: ExecuteBash
+        inputs:
+          commands:
+            - |
+              mkdir -p /etc/grafana-agent
+              cat > /etc/systemd/system/grafana-agent.service << 'EOF'
+              [Unit]
+              Description=Grafana Agent
+              After=network.target
+
+              [Service]
+              ExecStart=/usr/local/bin/grafana-agent --config.file=/etc/grafana-agent/config.yaml
+              Restart=on-failure
+              RestartSec=10
+
+              [Install]
+              WantedBy=multi-user.target
+              EOF
+              systemctl daemon-reload
+              systemctl enable grafana-agent || true

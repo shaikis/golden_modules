@@ -1,0 +1,17 @@
+output "function_name" { value = module.lambda.function_name }
+output "function_arn" { value = module.lambda.function_arn }
+output "function_version" { value = module.lambda.function_version }
+output "invoke_arn" { value = module.lambda.invoke_arn }
+output "qualified_arn" { value = module.lambda.qualified_arn }
+output "role_arn" { value = module.lambda.role_arn }
+output "role_name" { value = module.lambda.role_name }
+output "alias_arns" { value = module.lambda.alias_arns }
+output "alias_invoke_arns" { value = module.lambda.alias_invoke_arns }
+output "function_url" { value = module.lambda.function_url }
+output "log_group_name" { value = module.lambda.log_group_name }
+output "log_group_arn" { value = module.lambda.log_group_arn }
+output "schedule_arns" { value = module.lambda.schedule_arns }
+output "created_layer_arns" { value = module.lambda.created_layer_arns }
+output "cloudwatch_dashboard_url" { value = module.lambda.cloudwatch_dashboard_url }
+output "cloudwatch_alarm_errors_arn" { value = module.lambda.cloudwatch_alarm_errors_arn }
+output "cloudwatch_alarm_throttles_arn" { value = module.lambda.cloudwatch_alarm_throttles_arn }

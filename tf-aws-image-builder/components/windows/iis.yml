@@ -1,0 +1,72 @@
+name: InstallIIS
+description: Install IIS with common features and ASP.NET on Windows Server
+schemaVersion: 1.0
+parameters:
+  - EnableAspNet48:
+      type: string
+      description: "true to install ASP.NET 4.8 / .NET Framework features"
+      default: "true"
+  - EnableAspNetCore:
+      type: string
+      description: "true to install ASP.NET Core Hosting Bundle (latest LTS)"
+      default: "true"
+  - DotNetCoreVersion:
+      type: string
+      description: "ASP.NET Core Hosting Bundle version to install"
+      default: "8.0"
+phases:
+  - name: build
+    steps:
+      - name: InstallIISCore
+        action: ExecutePowerShell
+        inputs:
+          commands:
+            - |
+              Install-WindowsFeature -Name Web-Server -IncludeManagementTools
+              Install-WindowsFeature -Name Web-Common-Http
+              Install-WindowsFeature -Name Web-Health
+              Install-WindowsFeature -Name Web-Performance
+              Install-WindowsFeature -Name Web-Security
+              Install-WindowsFeature -Name Web-App-Dev
+              Install-WindowsFeature -Name Web-Mgmt-Tools
+
+      - name: InstallAspNet48
+        action: ExecutePowerShell
+        inputs:
+          commands:
+            - |
+              if ("{{ EnableAspNet48 }}" -eq "true") {
+                Install-WindowsFeature -Name NET-Framework-45-ASPNET
+                Install-WindowsFeature -Name Web-Asp-Net45
+              }
+
+      - name: InstallDotNetCoreHostingBundle
+        action: ExecutePowerShell
+        inputs:
+          commands:
+            - |
+              if ("{{ EnableAspNetCore }}" -eq "true") {
+                $Version = "{{ DotNetCoreVersion }}"
+                $Url = "https://aka.ms/dotnet/${Version}/aspnetcore-runtime-win-x64.exe"
+                $Installer = "$env:TEMP\dotnet-hosting.exe"
+                Invoke-WebRequest -Uri $Url -OutFile $Installer
+                Start-Process $Installer -ArgumentList "/quiet /norestart" -Wait
+              }
+
+      - name: EnableIISService
+        action: ExecutePowerShell
+        inputs:
+          commands:
+            - |
+              Set-Service -Name W3SVC -StartupType Automatic
+              Start-Service -Name W3SVC
+
+  - name: validate
+    steps:
+      - name: CheckIIS
+        action: ExecutePowerShell
+        inputs:
+          commands:
+            - |
+              $iis = Get-Service -Name W3SVC
+              Write-Host "IIS State: $($iis.Status)"

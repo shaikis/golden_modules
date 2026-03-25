@@ -1,0 +1,34 @@
+name: InstallDynatraceWindows
+description: Install Dynatrace OneAgent on Windows Server
+schemaVersion: 1.0
+parameters:
+  - DynatraceEnvUrl:
+      type: string
+      description: "Dynatrace environment URL"
+  - DynatraceApiToken:
+      type: string
+      description: "PaaS token from Dynatrace"
+phases:
+  - name: build
+    steps:
+      - name: DownloadAndInstall
+        action: ExecutePowerShell
+        inputs:
+          commands:
+            - |
+              $DtUrl   = "{{ DynatraceEnvUrl }}"
+              $DtToken = "{{ DynatraceApiToken }}"
+              $Installer = "$env:TEMP\Dynatrace-OneAgent.exe"
+              Invoke-WebRequest -Uri "${DtUrl}/api/v1/deployment/installer/agent/windows/default/latest?Api-Token=${DtToken}&arch=x86&flavor=default" `
+                                -OutFile $Installer
+              Start-Process $Installer -ArgumentList `
+                "--set-server=$DtUrl --set-tenant-token=$DtToken --set-infra-only=false /quiet" `
+                -Wait
+
+  - name: validate
+    steps:
+      - name: CheckService
+        action: ExecutePowerShell
+        inputs:
+          commands:
+            - Get-Service -Name "Dynatrace OneAgent" -ErrorAction SilentlyContinue | Write-Host

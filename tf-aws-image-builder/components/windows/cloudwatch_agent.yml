@@ -1,0 +1,34 @@
+name: InstallCloudWatchAgentWindows
+description: Install and configure Amazon CloudWatch Agent on Windows
+schemaVersion: 1.0
+parameters:
+  - CWAgentConfigSsmParam:
+      type: string
+      description: "SSM Parameter Store path for CloudWatch agent config"
+      default: "AmazonCloudWatch-windows"
+phases:
+  - name: build
+    steps:
+      - name: InstallCWAgent
+        action: ExecutePowerShell
+        inputs:
+          commands:
+            - |
+              $Region = (Invoke-WebRequest -Uri "http://169.254.169.254/latest/meta-data/placement/region" -UseBasicParsing).Content
+              $Url = "https://s3.amazonaws.com/amazoncloudwatch-agent/windows/amd64/latest/amazon-cloudwatch-agent.msi"
+              Invoke-WebRequest -Uri $Url -OutFile "$env:TEMP\amazon-cloudwatch-agent.msi"
+              Start-Process msiexec -ArgumentList "/i $env:TEMP\amazon-cloudwatch-agent.msi /quiet" -Wait
+
+      - name: FetchConfig
+        action: ExecutePowerShell
+        inputs:
+          commands:
+            - |
+              & "C:\Program Files\Amazon\AmazonCloudWatchAgent\amazon-cloudwatch-agent-ctl.ps1" `
+                -a fetch-config -m ec2 -s -c "ssm:{{ CWAgentConfigSsmParam }}" | Out-Null
+
+      - name: EnableService
+        action: ExecutePowerShell
+        inputs:
+          commands:
+            - Set-Service -Name AmazonCloudWatchAgent -StartupType Automatic
