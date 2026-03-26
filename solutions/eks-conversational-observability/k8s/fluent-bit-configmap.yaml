@@ -1,0 +1,48 @@
+# Fluent Bit ConfigMap -- forward EKS pod logs to Kinesis Data Streams
+# Apply with: kubectl apply -f k8s/fluent-bit-configmap.yaml
+# Replace KINESIS_STREAM_NAME and AWS_REGION with values from Terraform outputs:
+#   terraform output kinesis_stream_name
+#   terraform output aws_region  (or var.aws_region)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluent-bit-config
+  namespace: amazon-cloudwatch
+  labels:
+    app: fluent-bit
+data:
+  fluent-bit.conf: |
+    [SERVICE]
+        Flush         5
+        Log_Level     info
+        Daemon        off
+        Parsers_File  parsers.conf
+
+    [INPUT]
+        Name              tail
+        Tag               kube.*
+        Path              /var/log/containers/*.log
+        Parser            docker
+        DB                /var/log/flb_kube.db
+        Mem_Buf_Limit     50MB
+        Skip_Long_Lines   On
+        Refresh_Interval  10
+
+    [FILTER]
+        Name                kubernetes
+        Match               kube.*
+        Kube_URL            https://kubernetes.default.svc:443
+        Kube_CA_File        /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        Kube_Token_File     /var/run/secrets/kubernetes.io/serviceaccount/token
+        Merge_Log           On
+        Keep_Log            Off
+        K8S-Logging.Parser  On
+        K8S-Logging.Exclude Off
+
+    [OUTPUT]
+        Name            kinesis_streams
+        Match           kube.*
+        region          AWS_REGION
+        stream          KINESIS_STREAM_NAME
+        time_key        time
+        time_key_format %Y-%m-%dT%H:%M:%S
