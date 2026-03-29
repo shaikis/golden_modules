@@ -1,1 +1,0 @@
-{"Modules":[{"Key":"","Source":"","Dir":"."},{"Key":"kms","Source":"../../../tf-aws-kms","Dir":"../../../tf-aws-kms"},{"Key":"s3_with_srr","Source":"../..","Dir":"../.."}]}
