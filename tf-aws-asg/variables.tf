@@ -13,6 +13,24 @@ variable "project" {
   type    = string
   default = ""
 }
+variable "product_acronym" {
+  description = "Short product acronym used in OS hostnames, for example infb."
+  type        = string
+  default     = ""
+}
+variable "windows_hostname_strategy" {
+  description = "Windows hostname format. product_region_octet = <product>-<region>-<octet>; product_purpose_env_octet = compact <product><purpose><env>-<octet>."
+  type        = string
+  default     = "product_region_octet"
+
+  validation {
+    condition = contains([
+      "product_region_octet",
+      "product_purpose_env_octet",
+    ], var.windows_hostname_strategy)
+    error_message = "windows_hostname_strategy must be product_region_octet or product_purpose_env_octet."
+  }
+}
 variable "owner" {
   type    = string
   default = ""
@@ -140,7 +158,7 @@ variable "metadata_http_put_response_hop_limit" {
 # USER DATA
 # ===========================================================================
 variable "user_data" {
-  description = "Base64-encoded user_data. Overrides the built-in hostname template."
+  description = "Base64-encoded user_data commands appended after the built-in hostname/bootstrap logic."
   type        = string
   default     = ""
 }
@@ -149,6 +167,35 @@ variable "extra_user_data_commands" {
   description = "Extra shell/PS1 commands appended to the built-in userdata template."
   type        = string
   default     = ""
+}
+
+variable "bootstrap" {
+  description = "Optional thin-bootstrap configuration for pulling artifacts from S3 and passing feature flags, secrets, and parameters into a baked bootstrap entrypoint."
+  type = object({
+    enabled = optional(bool, true)
+    s3 = optional(object({
+      bucket       = string
+      key_prefix   = optional(string, null)
+      manifest_key = optional(string, null)
+    }), null)
+    entrypoint = optional(object({
+      linux   = optional(string, "/opt/bootstrap/bootstrap.sh")
+      windows = optional(string, "C:\\Bootstrap\\bootstrap.ps1")
+    }), {})
+    features = optional(object({
+      cloudwatch_agent = optional(bool, false)
+      dynatrace        = optional(bool, false)
+      grafana_alloy    = optional(bool, false)
+      ansible_winrm    = optional(bool, false)
+    }), {})
+    secrets = optional(object({
+      dynatrace_token_secret_arn = optional(string, null)
+      grafana_secret_arn         = optional(string, null)
+      ansible_winrm_secret_arn   = optional(string, null)
+    }), {})
+    parameters = optional(map(string), {})
+  })
+  default = null
 }
 
 # ===========================================================================
@@ -206,8 +253,22 @@ variable "default_cooldown" {
 }
 
 variable "target_group_arns" {
-  type    = list(string)
-  default = []
+  description = <<-EOT
+    List of ALB/NLB target group ARNs to attach this ASG to.
+
+    Works in both directions:
+      Add a TG ARN   → terraform apply registers all current + future instances.
+      Remove a TG ARN → terraform apply deregisters all instances from that TG.
+
+    Each ARN becomes one aws_autoscaling_attachment resource inside the module.
+    There is no ignore_changes on these — every apply reflects the current list.
+
+    Typical usage:
+      target_group_arns = values(module.alb.target_group_arns)
+      target_group_arns = [module.alb.target_group_arns["web"], module.alb.target_group_arns["api"]]
+  EOT
+  type        = list(string)
+  default     = []
 }
 
 variable "termination_policies" {
@@ -403,9 +464,79 @@ variable "new_instances_protected_from_scale_in" {
 }
 
 variable "suspended_processes" {
-  description = "ASG processes to suspend (e.g. ['Launch', 'Terminate', 'HealthCheck'])."
+  description = <<-EOT
+    ASG processes to suspend. Suspending a process stops the ASG from performing
+    that action — instances keep running but the ASG stops managing that behaviour.
+
+    Valid values:
+      Launch              — stop launching new instances (scale-out frozen)
+      Terminate           — stop terminating instances (scale-in frozen)
+      HealthCheck         — stop replacing unhealthy instances
+      ReplaceUnhealthy    — stop replacing instances marked unhealthy
+      AZRebalance         — stop rebalancing instances across AZs
+      AlarmNotification   — stop acting on CloudWatch alarms (scaling policies paused)
+      ScheduledActions    — stop executing scheduled scaling actions
+      AddToLoadBalancer   — stop registering new instances with the load balancer
+      InstanceRefresh     — stop any in-progress or new instance refresh
+
+    Common patterns:
+      Freeze the ASG entirely:           ["Launch", "Terminate", "HealthCheck"]
+      Disable auto-scaling only:         ["AlarmNotification", "ScheduledActions"]
+      Maintenance mode (no replacement): ["ReplaceUnhealthy", "HealthCheck"]
+  EOT
   type        = list(string)
   default     = []
+}
+
+variable "max_instance_lifetime" {
+  description = <<-EOT
+    Maximum number of seconds an instance can be in service before it is replaced
+    (force-recycled). Useful for compliance (patching) and memory leak mitigation.
+    Minimum 86400 (1 day). null = disabled (instances live indefinitely).
+  EOT
+  type        = number
+  default     = null
+}
+
+variable "default_instance_warmup" {
+  description = <<-EOT
+    Seconds after a new instance starts before its metrics contribute to scaling
+    decisions. Prevents premature scale-out triggered by a new instance's initial
+    high CPU. Defaults to null (ASG uses health_check_grace_period).
+    Range: 0–3600 seconds.
+  EOT
+  type        = number
+  default     = null
+}
+
+variable "wait_for_capacity_timeout" {
+  description = <<-EOT
+    How long Terraform waits for the ASG to reach its desired_capacity after
+    creation or update. Set to "0" to skip waiting (useful in CI or if instances
+    take a long time to bootstrap). Default: "10m".
+  EOT
+  type        = string
+  default     = "10m"
+}
+
+variable "force_delete" {
+  description = <<-EOT
+    Allow Terraform to destroy the ASG without waiting for instances to terminate.
+    When true, the ASG and its instances are deleted immediately on `terraform destroy`.
+    Useful in dev environments. Set false in production to drain connections cleanly.
+  EOT
+  type        = bool
+  default     = false
+}
+
+variable "ignore_failed_scaling_activities" {
+  description = <<-EOT
+    When true, failed scaling activities (e.g. instance launch failures due to
+    capacity constraints) are ignored and do not block Terraform. Useful when
+    using Spot instances that may be transiently unavailable.
+  EOT
+  type        = bool
+  default     = false
 }
 
 variable "warm_pool" {

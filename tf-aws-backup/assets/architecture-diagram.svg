@@ -1,0 +1,135 @@
+<svg width="1600" height="980" viewBox="0 0 1600 980" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1600" y2="980" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8FBFF"/>
+      <stop offset="1" stop-color="#EEF4F8"/>
+    </linearGradient>
+    <linearGradient id="header" x1="0" y1="0" x2="1600" y2="0" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F4C5C"/>
+      <stop offset="1" stop-color="#1D6F82"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#0F172A" flood-opacity="0.10"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#2563EB"/>
+    </marker>
+    <style>
+      .title { font: 700 34px 'Segoe UI', Arial, sans-serif; fill: #FFFFFF; }
+      .subtitle { font: 400 17px 'Segoe UI', Arial, sans-serif; fill: #D8EEF5; }
+      .section { font: 700 15px 'Segoe UI', Arial, sans-serif; fill: #16324F; letter-spacing: 0.4px; }
+      .paneltitle { font: 700 22px 'Segoe UI', Arial, sans-serif; fill: #102A43; }
+      .label { font: 700 17px 'Segoe UI', Arial, sans-serif; fill: #12324A; }
+      .body { font: 400 14px 'Segoe UI', Arial, sans-serif; fill: #3C536B; }
+      .small { font: 400 13px 'Segoe UI', Arial, sans-serif; fill: #486581; }
+      .note { font: 600 13px 'Segoe UI', Arial, sans-serif; fill: #234E52; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="980" fill="url(#bg)"/>
+  <rect width="1600" height="122" fill="url(#header)"/>
+  <text x="56" y="54" class="title">tf-aws-backup Architecture</text>
+  <text x="56" y="86" class="subtitle">Primary vaults, DR copy, compliance, reporting, and observability for AWS Backup</text>
+
+  <rect x="44" y="152" width="1512" height="786" rx="28" fill="#FFFFFF" stroke="#D7E2EA" stroke-width="2"/>
+
+  <text x="84" y="198" class="section">PRIMARY REGION FLOW</text>
+
+  <rect x="76" y="220" width="262" height="244" rx="24" fill="#F8FAFC" stroke="#D9E2EC" filter="url(#shadow)"/>
+  <rect x="102" y="248" width="210" height="42" rx="14" fill="#E6FFFA"/>
+  <text x="125" y="275" class="paneltitle">Protected Resources</text>
+  <text x="102" y="320" class="body">EC2, EBS, RDS, Aurora</text>
+  <text x="102" y="347" class="body">EFS, FSx, DynamoDB, S3</text>
+  <text x="102" y="374" class="body">Any AWS Backup-supported resource</text>
+  <text x="102" y="414" class="small">Selected by:</text>
+  <text x="102" y="438" class="small">- explicit resource ARNs</text>
+  <text x="102" y="460" class="small">- selection tags</text>
+
+  <rect x="392" y="220" width="324" height="244" rx="24" fill="#F8FAFC" stroke="#D9E2EC" filter="url(#shadow)"/>
+  <rect x="420" y="248" width="122" height="42" rx="14" fill="#EFF6FF"/>
+  <text x="448" y="275" class="paneltitle">Control Plane</text>
+  <rect x="420" y="314" width="118" height="64" rx="16" fill="#E0F2FE" stroke="#93C5FD"/>
+  <text x="448" y="341" class="label">Selections</text>
+  <text x="438" y="362" class="small">plan targeting</text>
+  <rect x="566" y="314" width="118" height="64" rx="16" fill="#FEF3C7" stroke="#FCD34D"/>
+  <text x="605" y="341" class="label">Plans</text>
+  <text x="584" y="362" class="small">rules, PITR, lifecycle</text>
+  <rect x="420" y="392" width="118" height="44" rx="16" fill="#ECFDF5" stroke="#86EFAC"/>
+  <text x="452" y="420" class="label">IAM Role</text>
+  <rect x="566" y="392" width="118" height="44" rx="16" fill="#FFF7ED" stroke="#FDBA74"/>
+  <text x="603" y="420" class="label">Vaults</text>
+
+  <rect x="770" y="220" width="356" height="244" rx="24" fill="#F8FAFC" stroke="#D9E2EC" filter="url(#shadow)"/>
+  <rect x="798" y="248" width="176" height="42" rx="14" fill="#F5F3FF"/>
+  <text x="824" y="275" class="paneltitle">Resilience and Governance</text>
+  <rect x="798" y="314" width="136" height="70" rx="16" fill="#EEF2FF" stroke="#A5B4FC"/>
+  <text x="823" y="341" class="label">Copy Actions</text>
+  <text x="818" y="362" class="small">secondary vault targets</text>
+  <rect x="962" y="314" width="136" height="70" rx="16" fill="#FEF2F2" stroke="#FCA5A5"/>
+  <text x="989" y="341" class="label">Framework</text>
+  <text x="982" y="362" class="small">audit controls</text>
+  <rect x="798" y="398" width="136" height="38" rx="16" fill="#F0FDFA" stroke="#99F6E4"/>
+  <text x="828" y="423" class="label">Report Plans</text>
+  <rect x="962" y="398" width="136" height="38" rx="16" fill="#EFF6FF" stroke="#93C5FD"/>
+  <text x="978" y="423" class="label">Global Settings</text>
+
+  <rect x="1180" y="220" width="320" height="244" rx="24" fill="#F8FAFC" stroke="#D9E2EC" filter="url(#shadow)"/>
+  <rect x="1208" y="248" width="180" height="42" rx="14" fill="#ECFEFF"/>
+  <text x="1234" y="275" class="paneltitle">Observability</text>
+  <rect x="1208" y="314" width="118" height="64" rx="16" fill="#FFF7ED" stroke="#FDBA74"/>
+  <text x="1252" y="341" class="label">SNS</text>
+  <text x="1228" y="362" class="small">event notifications</text>
+  <rect x="1354" y="314" width="118" height="64" rx="16" fill="#EFF6FF" stroke="#93C5FD"/>
+  <text x="1368" y="341" class="label">Logs and Events</text>
+  <text x="1370" y="362" class="small">EventBridge flow</text>
+  <rect x="1208" y="392" width="118" height="44" rx="16" fill="#ECFDF5" stroke="#86EFAC"/>
+  <text x="1244" y="420" class="label">Alarms</text>
+  <rect x="1354" y="392" width="118" height="44" rx="16" fill="#F5F3FF" stroke="#C4B5FD"/>
+  <text x="1380" y="420" class="label">Dashboard</text>
+
+  <path d="M338 342 H392" stroke="#2563EB" stroke-width="4" marker-end="url(#arrow)"/>
+  <path d="M716 342 H770" stroke="#2563EB" stroke-width="4" marker-end="url(#arrow)"/>
+  <path d="M1126 342 H1180" stroke="#2563EB" stroke-width="4" marker-end="url(#arrow)"/>
+
+  <text x="84" y="530" class="section">DR REGION</text>
+  <rect x="76" y="552" width="640" height="162" rx="24" fill="#F8FAFC" stroke="#D9E2EC" filter="url(#shadow)"/>
+  <rect x="104" y="580" width="188" height="44" rx="14" fill="#DBEAFE"/>
+  <text x="132" y="607" class="paneltitle">Module-managed DR Vault</text>
+  <text x="104" y="652" class="body">Created with aliased provider `aws.dr`</text>
+  <text x="104" y="678" class="body">Used by `destination_vault_key` copy actions</text>
+
+  <rect x="342" y="580" width="164" height="44" rx="14" fill="#E6FFFA"/>
+  <text x="372" y="607" class="paneltitle">External DR Vault</text>
+  <text x="342" y="652" class="body">Existing vault ARN can be passed</text>
+  <text x="342" y="678" class="body">through `destination_vault_arn`</text>
+
+  <rect x="556" y="580" width="132" height="44" rx="14" fill="#FEF3C7"/>
+  <text x="586" y="607" class="paneltitle">DR Copy</text>
+  <text x="556" y="652" class="body">Cross-region retention</text>
+  <text x="556" y="678" class="body">for disaster recovery</text>
+
+  <path d="M874 464 V520" stroke="#2563EB" stroke-width="4"/>
+  <path d="M874 520 H622" stroke="#2563EB" stroke-width="4" marker-end="url(#arrow)"/>
+
+  <text x="84" y="768" class="section">OPERATIONAL FLOW</text>
+  <rect x="76" y="790" width="1424" height="108" rx="24" fill="#F8FAFC" stroke="#D9E2EC" filter="url(#shadow)"/>
+
+  <rect x="102" y="818" width="220" height="52" rx="16" fill="#FFFFFF" stroke="#D9E2EC"/>
+  <text x="128" y="849" class="label">1. Select resources</text>
+  <rect x="370" y="818" width="240" height="52" rx="16" fill="#FFFFFF" stroke="#D9E2EC"/>
+  <text x="397" y="849" class="label">2. Run scheduled plan rules</text>
+  <rect x="658" y="818" width="222" height="52" rx="16" fill="#FFFFFF" stroke="#D9E2EC"/>
+  <text x="682" y="849" class="label">3. Store recovery points</text>
+  <rect x="928" y="818" width="228" height="52" rx="16" fill="#FFFFFF" stroke="#D9E2EC"/>
+  <text x="952" y="849" class="label">4. Copy to DR when required</text>
+  <rect x="1204" y="818" width="268" height="52" rx="16" fill="#FFFFFF" stroke="#D9E2EC"/>
+  <text x="1228" y="849" class="label">5. Observe, audit, and report</text>
+
+  <path d="M322 844 H370" stroke="#2563EB" stroke-width="4" marker-end="url(#arrow)"/>
+  <path d="M610 844 H658" stroke="#2563EB" stroke-width="4" marker-end="url(#arrow)"/>
+  <path d="M880 844 H928" stroke="#2563EB" stroke-width="4" marker-end="url(#arrow)"/>
+  <path d="M1156 844 H1204" stroke="#2563EB" stroke-width="4" marker-end="url(#arrow)"/>
+
+  <rect x="76" y="916" width="1424" height="26" rx="13" fill="#E6FFFA"/>
+  <text x="100" y="934" class="note">Choice-based patterns supported: create or bring your own IAM role, use primary vaults only, or add DR-region copy using either module-managed or external destination vaults.</text>
+</svg>

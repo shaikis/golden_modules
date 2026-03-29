@@ -135,20 +135,26 @@ resource "aws_launch_template" "this" {
 # AUTO SCALING GROUP
 # ===========================================================================
 resource "aws_autoscaling_group" "this" {
-  name                                  = local.name
-  vpc_zone_identifier                   = var.vpc_zone_identifier
-  min_size                              = var.min_size
-  max_size                              = var.max_size
-  desired_capacity                      = var.desired_capacity
-  health_check_type                     = var.health_check_type
-  health_check_grace_period             = var.health_check_grace_period
-  default_cooldown                      = var.default_cooldown
-  target_group_arns                     = var.target_group_arns
-  termination_policies                  = var.termination_policies
-  protect_from_scale_in                 = var.protect_from_scale_in
-  new_instances_protected_from_scale_in = var.new_instances_protected_from_scale_in
-  capacity_rebalance                    = var.capacity_rebalance
-  suspended_processes                   = length(var.suspended_processes) > 0 ? var.suspended_processes : null
+  name                      = local.name
+  vpc_zone_identifier       = var.vpc_zone_identifier
+  min_size                  = var.min_size
+  max_size                  = var.max_size
+  desired_capacity          = var.desired_capacity
+  health_check_type         = var.health_check_type
+  health_check_grace_period = var.health_check_grace_period
+  default_cooldown          = var.default_cooldown
+  # target_group_arns is intentionally NOT set here.
+  # Attachments are managed via aws_autoscaling_attachment below,
+  # so adding or removing a TG ARN from var.target_group_arns always works.
+  termination_policies             = var.termination_policies
+  protect_from_scale_in            = var.protect_from_scale_in
+  capacity_rebalance               = var.capacity_rebalance
+  suspended_processes              = length(var.suspended_processes) > 0 ? var.suspended_processes : null
+  max_instance_lifetime            = var.max_instance_lifetime
+  default_instance_warmup          = var.default_instance_warmup
+  wait_for_capacity_timeout        = var.wait_for_capacity_timeout
+  force_delete                     = var.force_delete
+  ignore_failed_scaling_activities = var.ignore_failed_scaling_activities
 
   # Mixed instances policy (Spot + On-Demand)
   dynamic "mixed_instances_policy" {
@@ -228,8 +234,25 @@ resource "aws_autoscaling_group" "this" {
   }
 
   lifecycle {
-    ignore_changes = [desired_capacity, load_balancers, target_group_arns]
+    # desired_capacity: managed by scaling policies at runtime — don't fight them.
+    # load_balancers:   classic ELB attachments managed outside Terraform.
+    # target_group_arns NOT ignored — managed via aws_autoscaling_attachment below.
+    ignore_changes = [desired_capacity, load_balancers]
   }
+}
+
+# ===========================================================================
+# TARGET GROUP ATTACHMENTS
+# One aws_autoscaling_attachment per TG ARN in var.target_group_arns.
+# Using separate attachment resources (not the inline target_group_arns
+# attribute on the ASG) means you can add or remove TGs at any time by
+# updating var.target_group_arns and running terraform apply — works both ways.
+# ===========================================================================
+resource "aws_autoscaling_attachment" "this" {
+  for_each = toset(var.target_group_arns)
+
+  autoscaling_group_name = aws_autoscaling_group.this.name
+  lb_target_group_arn    = each.value
 }
 
 # ===========================================================================
@@ -255,17 +278,16 @@ resource "aws_autoscaling_lifecycle_hook" "this" {
 resource "aws_autoscaling_policy" "cpu" {
   count = var.enable_cpu_scaling ? 1 : 0
 
-  name                   = "${local.name}-cpu-target"
-  autoscaling_group_name = aws_autoscaling_group.this.name
-  policy_type            = "TargetTrackingScaling"
+  name                      = "${local.name}-cpu-target"
+  autoscaling_group_name    = aws_autoscaling_group.this.name
+  policy_type               = "TargetTrackingScaling"
+  estimated_instance_warmup = var.default_instance_warmup
 
   target_tracking_configuration {
     predefined_metric_specification {
       predefined_metric_type = "ASGAverageCPUUtilization"
     }
-    target_value       = var.cpu_target_value
-    scale_in_cooldown  = var.scale_in_cooldown
-    scale_out_cooldown = var.scale_out_cooldown
+    target_value = var.cpu_target_value
   }
 }
 
@@ -273,23 +295,22 @@ resource "aws_autoscaling_policy" "cpu" {
 resource "aws_autoscaling_policy" "memory" {
   count = var.enable_memory_scaling ? 1 : 0
 
-  name                   = "${local.name}-memory-target"
-  autoscaling_group_name = aws_autoscaling_group.this.name
-  policy_type            = "TargetTrackingScaling"
+  name                      = "${local.name}-memory-target"
+  autoscaling_group_name    = aws_autoscaling_group.this.name
+  policy_type               = "TargetTrackingScaling"
+  estimated_instance_warmup = var.default_instance_warmup
 
   target_tracking_configuration {
     customized_metric_specification {
       metric_name = "MemoryUtilization"
       namespace   = "CWAgent"
       statistic   = "Average"
-      dimensions {
+      metric_dimension {
         name  = "AutoScalingGroupName"
         value = aws_autoscaling_group.this.name
       }
     }
-    target_value       = var.memory_target_value
-    scale_in_cooldown  = var.scale_in_cooldown
-    scale_out_cooldown = var.scale_out_cooldown
+    target_value = var.memory_target_value
   }
 }
 
@@ -297,18 +318,17 @@ resource "aws_autoscaling_policy" "memory" {
 resource "aws_autoscaling_policy" "alb_request" {
   count = var.enable_alb_request_scaling && var.alb_target_group_arn_suffix != null ? 1 : 0
 
-  name                   = "${local.name}-alb-request-target"
-  autoscaling_group_name = aws_autoscaling_group.this.name
-  policy_type            = "TargetTrackingScaling"
+  name                      = "${local.name}-alb-request-target"
+  autoscaling_group_name    = aws_autoscaling_group.this.name
+  policy_type               = "TargetTrackingScaling"
+  estimated_instance_warmup = var.default_instance_warmup
 
   target_tracking_configuration {
     predefined_metric_specification {
       predefined_metric_type = "ALBRequestCountPerTarget"
       resource_label         = "${var.alb_arn_suffix}/${var.alb_target_group_arn_suffix}"
     }
-    target_value       = var.alb_request_target_value
-    scale_in_cooldown  = var.scale_in_cooldown
-    scale_out_cooldown = var.scale_out_cooldown
+    target_value = var.alb_request_target_value
   }
 }
 
@@ -316,17 +336,16 @@ resource "aws_autoscaling_policy" "alb_request" {
 resource "aws_autoscaling_policy" "network_in" {
   count = var.enable_network_in_scaling ? 1 : 0
 
-  name                   = "${local.name}-network-in-target"
-  autoscaling_group_name = aws_autoscaling_group.this.name
-  policy_type            = "TargetTrackingScaling"
+  name                      = "${local.name}-network-in-target"
+  autoscaling_group_name    = aws_autoscaling_group.this.name
+  policy_type               = "TargetTrackingScaling"
+  estimated_instance_warmup = var.default_instance_warmup
 
   target_tracking_configuration {
     predefined_metric_specification {
       predefined_metric_type = "ASGAverageNetworkIn"
     }
-    target_value       = var.network_in_target_bytes
-    scale_in_cooldown  = var.scale_in_cooldown
-    scale_out_cooldown = var.scale_out_cooldown
+    target_value = var.network_in_target_bytes
   }
 }
 
@@ -334,17 +353,16 @@ resource "aws_autoscaling_policy" "network_in" {
 resource "aws_autoscaling_policy" "network_out" {
   count = var.enable_network_out_scaling ? 1 : 0
 
-  name                   = "${local.name}-network-out-target"
-  autoscaling_group_name = aws_autoscaling_group.this.name
-  policy_type            = "TargetTrackingScaling"
+  name                      = "${local.name}-network-out-target"
+  autoscaling_group_name    = aws_autoscaling_group.this.name
+  policy_type               = "TargetTrackingScaling"
+  estimated_instance_warmup = var.default_instance_warmup
 
   target_tracking_configuration {
     predefined_metric_specification {
       predefined_metric_type = "ASGAverageNetworkOut"
     }
-    target_value       = var.network_out_target_bytes
-    scale_in_cooldown  = var.scale_in_cooldown
-    scale_out_cooldown = var.scale_out_cooldown
+    target_value = var.network_out_target_bytes
   }
 }
 
@@ -352,23 +370,22 @@ resource "aws_autoscaling_policy" "network_out" {
 resource "aws_autoscaling_policy" "sqs" {
   count = var.enable_sqs_scaling && var.sqs_queue_name != null ? 1 : 0
 
-  name                   = "${local.name}-sqs-target"
-  autoscaling_group_name = aws_autoscaling_group.this.name
-  policy_type            = "TargetTrackingScaling"
+  name                      = "${local.name}-sqs-target"
+  autoscaling_group_name    = aws_autoscaling_group.this.name
+  policy_type               = "TargetTrackingScaling"
+  estimated_instance_warmup = var.default_instance_warmup
 
   target_tracking_configuration {
     customized_metric_specification {
       metric_name = "ApproximateNumberOfMessagesVisible"
       namespace   = "AWS/SQS"
       statistic   = "Sum"
-      dimensions {
+      metric_dimension {
         name  = "QueueName"
         value = var.sqs_queue_name
       }
     }
-    target_value       = var.sqs_messages_per_instance
-    scale_in_cooldown  = var.scale_in_cooldown
-    scale_out_cooldown = var.scale_out_cooldown
+    target_value = var.sqs_messages_per_instance
   }
 }
 
@@ -406,13 +423,7 @@ resource "aws_cloudwatch_metric_alarm" "step" {
   threshold           = each.value.alarm_threshold
   comparison_operator = each.value.alarm_comparison_operator
 
-  dynamic "dimensions" {
-    for_each = merge({ AutoScalingGroupName = aws_autoscaling_group.this.name }, each.value.alarm_dimensions)
-    content {
-      name  = dimensions.key
-      value = dimensions.value
-    }
-  }
+  dimensions = merge({ AutoScalingGroupName = aws_autoscaling_group.this.name }, each.value.alarm_dimensions)
 
   alarm_actions = [aws_autoscaling_policy.step[each.key].arn]
   tags          = local.tags

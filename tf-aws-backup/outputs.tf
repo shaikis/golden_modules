@@ -18,6 +18,11 @@ output "vault_arns" {
   value = { for k, v in aws_backup_vault.this : k => v.arn }
 }
 
+output "dr_vault_arns" {
+  description = "Map of DR vault keys to vault ARNs created with the aws.dr provider alias."
+  value       = { for k, v in aws_backup_vault.dr : k => v.arn }
+}
+
 output "plan_ids" {
   value = { for k, v in aws_backup_plan.this : k => v.id }
 }

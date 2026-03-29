@@ -10,6 +10,9 @@ Utility module for per-instance ASG operations. Use alongside `tf-aws-asg`.
 | **Standby** | `standby_instance_ids` | Instance detached from LB & health checks, stays in ASG | Yes — remove ID, re-apply |
 | **Detach** | `detach_instance_ids` | Instance removed from ASG (still running, unmanaged) | Manual — re-attach via console/CLI |
 
+## Versioning
+
+Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.
 ## Usage
 
 ```hcl
@@ -39,3 +42,4 @@ aws ssm start-session --target i-0abc123
 # Remove from standby_instance_ids in tfvars, re-apply
 terraform apply -var-file=ops.tfvars
 ```
+

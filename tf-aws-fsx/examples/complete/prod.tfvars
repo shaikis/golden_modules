@@ -49,7 +49,7 @@ ontap = {
   throughput_capacity               = 1024
   automatic_backup_retention_days   = 30
   daily_automatic_backup_start_time = "02:00"
-  fsx_admin_password                = "CHANGE_ME_USE_SSM"
+  fsx_admin_password_secret_id      = "prod/fsx/admin"
   ha_pairs                          = 1
 
   svms = {
@@ -59,7 +59,7 @@ ontap = {
       active_directory = {
         dns_ips     = ["10.10.0.10", "10.10.0.11"]
         domain_name = "corp.internal"
-        password    = "CHANGE_ME_USE_SSM"
+        password_secret_id = "prod/fsx/domain-join"
         username    = "svc-fsx-prod"
         organizational_unit_distinguished_name = "OU=FSx,DC=corp,DC=internal"
         netbios_name = "PROD-APP-SVM"

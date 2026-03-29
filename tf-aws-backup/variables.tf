@@ -131,6 +131,45 @@ variable "vaults" {
   default = {}
 }
 
+variable "dr_vaults" {
+  description = <<-EOT
+    Map of DR-region backup vaults to create using the aliased provider `aws.dr`.
+    Use these when you want the module to create the destination vault in a DR region
+    instead of only accepting a pre-existing destination_vault_arn.
+
+    Caller pattern:
+      providers = {
+        aws    = aws.primary
+        aws.dr = aws.dr
+      }
+  EOT
+  type = map(object({
+    kms_key_arn   = optional(string, null)
+    force_destroy = optional(bool, false)
+    policy        = optional(string, null)
+
+    enable_vault_lock              = optional(bool, false)
+    vault_lock_changeable_for_days = optional(number, null)
+    vault_lock_max_retention_days  = optional(number, null)
+    vault_lock_min_retention_days  = optional(number, null)
+
+    sns_topic_arn = optional(string, null)
+    notification_events = optional(list(string), [
+      "BACKUP_JOB_STARTED",
+      "BACKUP_JOB_COMPLETED",
+      "BACKUP_JOB_FAILED",
+      "RESTORE_JOB_STARTED",
+      "RESTORE_JOB_COMPLETED",
+      "COPY_JOB_STARTED",
+      "COPY_JOB_SUCCESSFUL",
+      "COPY_JOB_FAILED",
+    ])
+
+    tags = optional(map(string), {})
+  }))
+  default = {}
+}
+
 # ────────────────────────────────────────────────────────────────────────────
 # Backup Plans
 # ────────────────────────────────────────────────────────────────────────────
@@ -174,7 +213,8 @@ variable "plans" {
       }), null)
 
       copy_actions = optional(list(object({
-        destination_vault_arn = string
+        destination_vault_arn = optional(string, null)
+        destination_vault_key = optional(string, null) # references var.dr_vaults key
         lifecycle = optional(object({
           cold_storage_after = optional(number, null)
           delete_after       = number

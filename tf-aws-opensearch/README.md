@@ -43,6 +43,9 @@ Set `create_serverless = false` and `create_domain = true` to switch to a manage
 
 ---
 
+## Versioning
+
+Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.
 ## Usage Examples
 
 ### 1. VECTORSEARCH Collection for RAG (Lambda + Bedrock Embeddings)
@@ -356,3 +359,4 @@ Both layers must allow the request. A principal missing either one will receive 
 ## License
 
 MIT
+

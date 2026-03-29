@@ -70,18 +70,60 @@ locals {
 
   # Software option components (inline)
   sw_cwa_data = var.install_cloudwatch_agent ? (local.is_windows ? file("${path.module}/components/windows/cloudwatch_agent.yml") : file("${path.module}/components/linux/cloudwatch_agent.yml")) : null
-  sw_dt_data  = var.install_dynatrace        ? (local.is_windows ? file("${path.module}/components/windows/dynatrace.yml")         : file("${path.module}/components/linux/dynatrace.yml"))         : null
-  sw_ora_data = var.install_oracle_client    ? (local.is_windows ? file("${path.module}/components/windows/oracle_client.yml")     : file("${path.module}/components/linux/oracle_client.yml"))     : null
-  sw_iis_data = var.install_iis && local.is_windows ? file("${path.module}/components/windows/iis.yml")                                                                                                : null
-  sw_grf_data = var.install_grafana_agent    ? (local.is_windows ? null                                                            : file("${path.module}/components/linux/grafana_agent.yml"))     : null
+  sw_dt_data  = var.install_dynatrace ? (local.is_windows ? file("${path.module}/components/windows/dynatrace.yml") : file("${path.module}/components/linux/dynatrace.yml")) : null
+  sw_ora_data = var.install_oracle_client ? (local.is_windows ? file("${path.module}/components/windows/oracle_client.yml") : file("${path.module}/components/linux/oracle_client.yml")) : null
+  sw_iis_data = var.install_iis && local.is_windows ? file("${path.module}/components/windows/iis.yml") : null
+  sw_grf_data = var.install_grafana_agent ? (local.is_windows ? null : file("${path.module}/components/linux/grafana_agent.yml")) : null
 
   software_components_raw = {
     for k, v in {
-      cwa      = { data = local.sw_cwa_data; params = [{ name = "CWAgentConfigSsmParam"; value = [var.cloudwatch_agent_ssm_param] }] }
-      dynatrace = { data = local.sw_dt_data;  params = [{ name = "DynatraceEnvUrl"; value = [var.dynatrace_env_url] }, { name = "DynatraceApiToken"; value = [var.dynatrace_api_token] }] }
-      oracle    = { data = local.sw_ora_data; params = [{ name = "OracleClientVersion"; value = [var.oracle_client_version] }, { name = "OracleClientS3Bucket"; value = [var.oracle_client_s3_bucket] }] }
-      iis       = { data = local.sw_iis_data; params = [{ name = "EnableAspNet48"; value = [tostring(var.iis_enable_aspnet48)] }] }
-      grafana   = { data = local.sw_grf_data; params = [{ name = "GrafanaAgentVersion"; value = [var.grafana_agent_version] }] }
+      cwa = {
+        data = local.sw_cwa_data
+        params = [{
+          name  = "CWAgentConfigSsmParam"
+          value = [var.cloudwatch_agent_ssm_param]
+        }]
+      }
+      dynatrace = {
+        data = local.sw_dt_data
+        params = [
+          {
+            name  = "DynatraceEnvUrl"
+            value = [var.dynatrace_env_url]
+          },
+          {
+            name  = "DynatraceApiToken"
+            value = [var.dynatrace_api_token]
+          }
+        ]
+      }
+      oracle = {
+        data = local.sw_ora_data
+        params = [
+          {
+            name  = "OracleClientVersion"
+            value = [var.oracle_client_version]
+          },
+          {
+            name  = "OracleClientS3Bucket"
+            value = [var.oracle_client_s3_bucket]
+          }
+        ]
+      }
+      iis = {
+        data = local.sw_iis_data
+        params = [{
+          name  = "EnableAspNet48"
+          value = [tostring(var.iis_enable_aspnet48)]
+        }]
+      }
+      grafana = {
+        data = local.sw_grf_data
+        params = [{
+          name  = "GrafanaAgentVersion"
+          value = [var.grafana_agent_version]
+        }]
+      }
     } : k => v if v.data != null
   }
 
@@ -170,7 +212,7 @@ resource "aws_imagebuilder_distribution_configuration" "this" {
 
   # Primary region (always)
   distribution {
-    region = data.aws_region.current.name
+    region = data.aws_region.current.region
     ami_distribution_configuration {
       name               = "${coalesce(var.ami_name_prefix, local.name)}-{{ imagebuilder:buildDate }}"
       ami_tags           = local.tags

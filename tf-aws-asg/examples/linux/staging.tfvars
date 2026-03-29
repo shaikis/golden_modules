@@ -35,4 +35,7 @@ scheduled_actions = {
   }
 }
 
-tags = { Team = "app-team"; CostSaving = "scheduled" }
+tags = {
+  Team       = "app-team"
+  CostSaving = "scheduled"
+}

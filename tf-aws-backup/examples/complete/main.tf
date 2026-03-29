@@ -8,7 +8,11 @@ provider "aws" {
 }
 
 module "backup" {
-  source = "../../modules/aws-backup"
+  source = "../.."
+  providers = {
+    aws    = aws
+    aws.dr = aws.dr
+  }
 
   ##########################################
   # Naming
@@ -49,6 +53,19 @@ module "backup" {
     }
   }
 
+  dr_vaults = var.create_dr_vault ? {
+    dr = {
+      kms_key_arn                   = var.dr_vault_kms_key_arn
+      enable_vault_lock             = true
+      vault_lock_min_retention_days = 7
+      vault_lock_max_retention_days = 3650
+
+      tags = {
+        Vault = "dr"
+      }
+    }
+  } : {}
+
   ##########################################
   # Backup Plans
   ##########################################
@@ -68,7 +85,8 @@ module "backup" {
 
           copy_actions = [
             {
-              destination_vault_arn = var.dr_vault_arn
+              destination_vault_arn = var.create_dr_vault ? null : var.dr_vault_arn
+              destination_vault_key = var.create_dr_vault ? "dr" : null
 
               lifecycle = {
                 delete_after = 60
@@ -90,7 +108,8 @@ module "backup" {
 
           copy_actions = [
             {
-              destination_vault_arn = var.dr_vault_arn
+              destination_vault_arn = var.create_dr_vault ? null : var.dr_vault_arn
+              destination_vault_key = var.create_dr_vault ? "dr" : null
 
               lifecycle = {
                 cold_storage_after = 60

@@ -14,8 +14,19 @@ provider "aws" { region = var.aws_region }
 # ── KMS ──────────────────────────────────────────────────────────────────
 module "kms" {
   source      = "../../../tf-aws-kms"
-  name        = "${var.name}-images"
-  environment = var.environment
+  name_prefix = "${var.name}-images"
+  tags = {
+    Environment = var.environment
+    Project     = var.project
+    Owner       = var.owner
+    CostCenter  = var.cost_center
+  }
+
+  keys = {
+    image_builder = {
+      description = "KMS key for ${var.name} Image Builder artifacts"
+    }
+  }
 }
 
 # ── S3 bucket for Packer templates + Ansible playbooks ───────────────────
@@ -24,7 +35,7 @@ module "s3_artifacts" {
   bucket_name        = "${var.name}-image-artifacts-${var.environment}"
   environment        = var.environment
   project            = var.project
-  kms_master_key_id  = module.kms.key_arn
+  kms_master_key_id  = module.kms.key_arns["image_builder"]
   versioning_enabled = true
 }
 
@@ -61,7 +72,7 @@ module "image_builder" {
   cost_center = var.cost_center
 
   platform    = var.platform
-  kms_key_arn = module.kms.key_arn
+  kms_key_arn = module.kms.key_arns["image_builder"]
 
   recipe_version               = var.recipe_version
   root_volume_size             = var.root_volume_size
@@ -108,7 +119,3 @@ resource "aws_iam_role_policy" "s3_read" {
     }]
   })
 }
-
-output "pipeline_arn" { value = module.image_builder.pipeline_arn }
-output "artifacts_bucket" { value = module.s3_artifacts.bucket_id }
-output "packer_template_s3" { value = "s3://${module.s3_artifacts.bucket_id}/${aws_s3_object.packer_template.key}" }

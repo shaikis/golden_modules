@@ -501,3 +501,8 @@ Each example folder contains:
 - `dev.tfvars` — dev environment (shared VPC, no cross-region)
 - `staging.tfvars` — staging (shared VPC, backup replication)
 - `prod.tfvars` — prod (dedicated VPC, full HA + DR)
+
+## Versioning
+
+Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.
+

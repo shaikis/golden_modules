@@ -24,10 +24,24 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "this" {
 # Direct Connect Gateway Association
 # ---------------------------------------------------------------------------
 resource "aws_dx_gateway_association" "this" {
-  for_each = var.dx_gateway_attachments
+  for_each = {
+    for k, v in var.dx_gateway_attachments : k => v
+    if v.dx_gateway_owner_account_id == null
+  }
 
   dx_gateway_id               = each.value.dx_gateway_id
   associated_gateway_id       = aws_ec2_transit_gateway.this.id
-  dx_gateway_owner_account_id = each.value.dx_gateway_owner_account_id
   allowed_prefixes            = each.value.allowed_prefixes
+}
+
+resource "aws_dx_gateway_association_proposal" "this" {
+  for_each = {
+    for k, v in var.dx_gateway_attachments : k => v
+    if v.dx_gateway_owner_account_id != null
+  }
+
+  dx_gateway_id                    = each.value.dx_gateway_id
+  associated_gateway_id            = aws_ec2_transit_gateway.this.id
+  dx_gateway_owner_account_id      = each.value.dx_gateway_owner_account_id
+  allowed_prefixes                 = each.value.allowed_prefixes
 }

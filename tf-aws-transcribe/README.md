@@ -17,6 +17,9 @@ A production-grade Terraform module for managing [Amazon Transcribe](https://aws
 | terraform | >= 1.3.0 |
 | aws | >= 5.0 |
 
+## Versioning
+
+Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.
 ## Usage
 
 ### Minimal (IAM role only)
@@ -351,3 +354,4 @@ module "fintech_transcribe" {
 - `base_model_name` for language models must be `"NarrowBand"` (8 kHz telephony) or `"WideBand"` (16 kHz broadband audio).
 - Each vocabulary must provide either `phrases` (inline list) or `vocabulary_file_uri` (S3 URI), not neither.
 - The auto-created IAM role trusts both `transcribe.amazonaws.com` and `lambda.amazonaws.com`, enabling Lambda functions to invoke Transcribe jobs with the same role.
+

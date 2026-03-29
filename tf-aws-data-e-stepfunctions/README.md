@@ -15,6 +15,9 @@ Production-grade Terraform module for AWS Step Functions — state machines, act
 - BYO role via `role_arn` (from `tf-aws-iam`)
 - BYO KMS key via `kms_key_arn` (from `tf-aws-kms`)
 
+## Versioning
+
+Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.
 ## Usage
 
 ### Minimal
@@ -361,3 +364,4 @@ module "sfn" {
 |------|---------|
 | terraform | >= 1.5.0 |
 | aws | >= 5.0.0 |
+

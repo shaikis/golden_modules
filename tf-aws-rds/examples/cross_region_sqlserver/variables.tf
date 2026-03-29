@@ -160,6 +160,71 @@ variable "parameters" {
   default = []
 }
 
+# ---------------------------------------------------------------------------
+# Option Group
+# ---------------------------------------------------------------------------
+variable "create_option_group" {
+  type    = bool
+  default = false
+}
+variable "option_group_major_engine_version" {
+  type    = string
+  default = "15.00"   # SQL Server 2019; use "14.00" for 2017, "16.00" for 2022
+}
+variable "options" {
+  description = "SQL Server option group options. See module variable docs for full schema."
+  type = list(object({
+    option_name                    = string
+    port                           = optional(number)
+    db_security_group_memberships  = optional(list(string))
+    vpc_security_group_memberships = optional(list(string))
+    option_settings = optional(list(object({
+      name  = string
+      value = string
+    })), [])
+  }))
+  default = [
+    # Enable SQL Server Agent (scheduled jobs, maintenance plans)
+    { option_name = "SQLSERVER_AGENT" },
+  ]
+}
+
+# ---------------------------------------------------------------------------
+# Active Directory / Domain Join
+# ---------------------------------------------------------------------------
+variable "domain" {
+  description = "AWS Managed Microsoft AD directory ID (e.g. d-1234567890). Leave null to skip domain join."
+  type        = string
+  default     = null
+}
+variable "create_domain_iam_role" {
+  type    = bool
+  default = false
+}
+variable "domain_iam_role_name" {
+  description = "BYO IAM role name for domain join. Used only when create_domain_iam_role = false."
+  type        = string
+  default     = null
+}
+variable "domain_fqdn" {
+  description = "Self-managed AD FQDN (e.g. corp.example.com). Mutually exclusive with domain."
+  type        = string
+  default     = null
+}
+variable "domain_dns_ips" {
+  type    = list(string)
+  default = null
+}
+variable "domain_ou" {
+  type    = string
+  default = null
+}
+variable "domain_auth_secret_arn" {
+  description = "Secrets Manager ARN for the AD domain-join service account (self-managed AD only)."
+  type        = string
+  default     = null
+}
+
 # NOTE: SQL Server does NOT support cross-region read replicas.
 # Only automated backup replication is available.
 variable "enable_automated_backup_replication" {

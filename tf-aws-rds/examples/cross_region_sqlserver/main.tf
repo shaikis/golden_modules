@@ -78,6 +78,33 @@ module "rds_primary" {
   create_parameter_group = var.create_parameter_group
   parameter_group_family = var.parameter_group_family
   parameters             = var.parameters
+
+  # ── Option Group — SQL Server-specific features ─────────────────────────
+  # Uncomment and set create_option_group = true to enable.
+  # The module creates and manages the option group automatically.
+  create_option_group               = var.create_option_group
+  option_group_engine_name          = var.sqlserver_edition          # must match engine
+  option_group_major_engine_version = var.option_group_major_engine_version
+  options                           = var.options
+
+  # ── Active Directory / Windows Authentication ────────────────────────────
+  # Option A: AWS Managed Microsoft AD (supply the directory ID)
+  #   domain                 = "d-1234567890"
+  #   create_domain_iam_role = true
+  #
+  # Option B: Self-managed (on-premises) AD
+  #   domain_fqdn            = "corp.example.com"
+  #   domain_dns_ips         = ["10.0.1.5", "10.0.2.5"]
+  #   domain_ou              = "OU=RDS,DC=corp,DC=example,DC=com"
+  #   domain_auth_secret_arn = aws_secretsmanager_secret.domain_join.arn
+  #   create_domain_iam_role = true
+  domain                 = var.domain
+  domain_fqdn            = var.domain_fqdn
+  domain_dns_ips         = var.domain_dns_ips
+  domain_ou              = var.domain_ou
+  domain_auth_secret_arn = var.domain_auth_secret_arn
+  create_domain_iam_role = var.create_domain_iam_role
+  domain_iam_role_name   = var.domain_iam_role_name
 }
 
 # ---------------------------------------------------------------------------

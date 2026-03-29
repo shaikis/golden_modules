@@ -60,9 +60,8 @@ variable "cpu_target_value" {
 }
 variable "tags" {
   type    = map(string)
-  default = {
-} }
-
+  default = {}
+}
 variable "scheduled_actions" {
   type = map(object({
     recurrence       = optional(string, null)

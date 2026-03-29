@@ -36,6 +36,9 @@ Terraform module that provisions an **AWS Certificate Manager (ACM) SSL/TLS cert
 
 ---
 
+## Versioning
+
+Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.
 ## Usage
 
 ### 1. Single domain with DNS validation (most common)
@@ -274,3 +277,4 @@ The certificate must be in status `ISSUED` before the ALB listener will accept i
 | `aws_acm_certificate` | The SSL/TLS certificate request. |
 | `aws_route53_record` (per domain) | CNAME validation record written to the hosted zone. Only created when `validation_method = DNS` and `route53_zone_id` is set. |
 | `aws_acm_certificate_validation` | Waiter that blocks `terraform apply` until the certificate is `ISSUED`. Controlled by `wait_for_validation`. |
+

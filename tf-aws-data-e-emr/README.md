@@ -15,6 +15,9 @@ Production-grade Terraform module for Amazon EMR (Elastic MapReduce). Supports l
 - CloudWatch alarms: HDFS, idle detection, node health, capacity
 - All files pass `terraform fmt -check`
 
+## Versioning
+
+Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.
 ## Usage
 
 ### Minimal — transient Spark job cluster
@@ -390,3 +393,4 @@ clusters = {
 |------|---------|
 | terraform | >= 1.5.0 |
 | aws | >= 5.0.0 |
+

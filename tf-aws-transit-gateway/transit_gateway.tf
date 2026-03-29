@@ -1,5 +1,5 @@
 resource "aws_ec2_transit_gateway" "this" {
-  description                     = "${local.name} Transit Gateway"
+  description                     = coalesce(var.description, "${local.name} Transit Gateway")
   amazon_side_asn                 = var.amazon_side_asn
   auto_accept_shared_attachments  = var.auto_accept_shared_attachments
   default_route_table_association = var.default_route_table_association
@@ -7,6 +7,7 @@ resource "aws_ec2_transit_gateway" "this" {
   dns_support                     = var.dns_support
   vpn_ecmp_support                = var.vpn_ecmp_support
   multicast_support               = var.multicast_support
+  security_group_referencing_support = var.security_group_referencing_support
   transit_gateway_cidr_blocks     = var.transit_gateway_cidr_blocks
 
   tags = merge(local.tags, { Name = local.name })

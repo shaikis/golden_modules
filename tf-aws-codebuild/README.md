@@ -17,6 +17,9 @@ Terraform module for AWS CodeBuild. Provisions a fully configured CodeBuild proj
 
 ---
 
+## Versioning
+
+Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.
 ## Usage
 
 ### Standard x86 Docker Build (GitHub source)
@@ -261,3 +264,4 @@ When `vpc_id` is set, the module automatically appends EC2 networking permission
 |------|---------|
 | Terraform | >= 1.3.0 |
 | AWS Provider | >= 5.0 |
+

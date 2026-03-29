@@ -36,7 +36,10 @@ resource "aws_backup_plan" "this" {
       dynamic "copy_action" {
         for_each = rule.value.copy_actions
         content {
-          destination_vault_arn = copy_action.value.destination_vault_arn
+          destination_vault_arn = coalesce(
+            try(aws_backup_vault.dr[copy_action.value.destination_vault_key].arn, null),
+            copy_action.value.destination_vault_arn
+          )
 
           dynamic "lifecycle" {
             for_each = copy_action.value.lifecycle != null ? [copy_action.value.lifecycle] : []

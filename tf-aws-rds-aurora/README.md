@@ -26,6 +26,9 @@ Terraform module for AWS Aurora clusters (MySQL and PostgreSQL).
 | Aurora Serverless v2 (PG) | `aurora-postgresql` | `15.4` | `db.serverless` |
 | Aurora Serverless v2 (MySQL) | `aurora-mysql` | `8.0.mysql_aurora.3.04.0` | `db.serverless` |
 
+## Versioning
+
+Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.
 ## Usage
 
 ```hcl
@@ -69,3 +72,4 @@ module "aurora_serverless" {
 
 - [Basic](examples/basic/)
 - [Complete with Global Cluster + Serverless v2](examples/complete/)
+

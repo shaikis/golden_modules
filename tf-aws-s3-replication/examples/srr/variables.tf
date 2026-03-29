@@ -24,8 +24,8 @@ variable "cost_center" {
 }
 variable "tags" {
   type    = map(string)
-  default = {
-} }
+  default = {}
+}
 
 variable "source_bucket_name" {
   type    = string
@@ -77,8 +77,14 @@ variable "source_lifecycle_rules" {
     {
       id = "transition-to-ia"
       transitions = [
-        { days = 30; storage_class = "STANDARD_IA" },
-        { days = 90; storage_class = "GLACIER" },
+        {
+          days          = 30
+          storage_class = "STANDARD_IA"
+        },
+        {
+          days          = 90
+          storage_class = "GLACIER"
+        },
       ]
       noncurrent_version_expiration_days = 60
     }

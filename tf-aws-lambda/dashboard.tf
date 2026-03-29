@@ -13,7 +13,7 @@ resource "aws_cloudwatch_dashboard" "this" {
         width  = 24
         height = 2
         properties = {
-          markdown = "## Lambda: **${local.name}**\nRegion: `${data.aws_region.current.name}` | Environment: `${var.environment}` | Runtime: `${var.runtime}` | Memory: `${var.memory_size} MB`"
+          markdown = "## Lambda: **${local.name}**\nRegion: `${data.aws_region.current.region}` | Environment: `${var.environment}` | Runtime: `${var.runtime}` | Memory: `${var.memory_size} MB`"
         }
       },
       {
@@ -31,7 +31,7 @@ resource "aws_cloudwatch_dashboard" "this" {
             ["AWS/Lambda", "Errors", "FunctionName", aws_lambda_function.this.function_name, { stat = "Sum", color = "#d62728", label = "Errors" }]
           ]
           period = 60
-          region = data.aws_region.current.name
+          region = data.aws_region.current.region
         }
       },
       {
@@ -49,7 +49,7 @@ resource "aws_cloudwatch_dashboard" "this" {
             ["...", { stat = "Maximum", label = "Max" }]
           ]
           period = 60
-          region = data.aws_region.current.name
+          region = data.aws_region.current.region
         }
       },
       {
@@ -66,7 +66,7 @@ resource "aws_cloudwatch_dashboard" "this" {
             ["AWS/Lambda", "ConcurrentExecutions", "FunctionName", aws_lambda_function.this.function_name, { stat = "Maximum", color = "#1f77b4", label = "Concurrent" }]
           ]
           period = 60
-          region = data.aws_region.current.name
+          region = data.aws_region.current.region
         }
       },
       {
@@ -83,7 +83,7 @@ resource "aws_cloudwatch_dashboard" "this" {
             ["...", { stat = "Maximum", label = "Max Init" }]
           ]
           period = 60
-          region = data.aws_region.current.name
+          region = data.aws_region.current.region
         }
       },
       {
@@ -96,7 +96,7 @@ resource "aws_cloudwatch_dashboard" "this" {
           title  = "Recent Errors"
           view   = "table"
           query  = "SOURCE '${aws_cloudwatch_log_group.this.name}' | filter @message like /(?i)error|exception/ | sort @timestamp desc | limit 20"
-          region = data.aws_region.current.name
+          region = data.aws_region.current.region
         }
       }
     ]

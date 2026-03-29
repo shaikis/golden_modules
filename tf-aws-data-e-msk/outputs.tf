@@ -119,3 +119,17 @@ output "aws_account_id" {
   description = "AWS account ID where resources are deployed."
   value       = data.aws_caller_identity.current.account_id
 }
+
+# ---------------------------------------------------------------------------
+# Replicator outputs
+# ---------------------------------------------------------------------------
+
+output "replicator_arns" {
+  description = "Map of replicator key to ARN."
+  value       = { for k, v in aws_msk_replicator.this : k => v.replicator_arn }
+}
+
+output "replicator_role_arns" {
+  description = "Map of replicator key to auto-created IAM role ARN (empty when BYO role)."
+  value       = { for k, v in aws_iam_role.replicator : k => v.arn }
+}

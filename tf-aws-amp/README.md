@@ -63,6 +63,9 @@ This module creates and configures the following AWS resources:
 
 ---
 
+## Versioning
+
+Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.
 ## Usage Examples
 
 ### Basic Workspace
@@ -392,3 +395,4 @@ prometheus:
 - **Managed scraper vs. self-managed Prometheus:** Use `create_managed_scraper = true` for a zero-ops scraping setup. Use `create_irsa_role = true` when you run the Prometheus Operator or a custom Prometheus deployment inside EKS.
 - **OIDC issuer URL:** Pass the full URL (e.g. `https://oidc.eks.us-east-1.amazonaws.com/id/XXXX`) — the module strips the `https://` prefix automatically when constructing the IAM trust condition.
 - **SigV4 signing:** Prometheus remote-write to AMP requires AWS SigV4 request signing. Use the `amazon-prometheus-proxy` sidecar or configure `sigv4` directly in the `remote_write` section of your Prometheus configuration (supported natively in Prometheus >= 2.26).
+

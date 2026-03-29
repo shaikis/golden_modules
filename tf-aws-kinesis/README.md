@@ -204,7 +204,10 @@ Enhanced fan-out gives each registered consumer a **dedicated 2 MB/s per shard**
 - Maximum 20 EFO consumers per stream
 - EFO consumers use `SubscribeToShard` API (push) rather than `GetRecords` (pull)
 
-### Usage
+### Versioning
+
+Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.
+## Usage
 
 ```hcl
 stream_consumers = {
@@ -432,3 +435,4 @@ For production workloads, uncomment the `lifecycle { prevent_destroy = true }` b
 ## License
 
 MIT — see LICENSE file.
+

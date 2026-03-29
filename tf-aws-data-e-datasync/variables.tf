@@ -56,6 +56,17 @@ variable "create_agents" {
   default     = false
 }
 
+variable "auto_activate_agents" {
+  description = <<-EOT
+    When true, the module automatically provisions EC2 instances from the
+    DataSync agent AMI, registers them via a Lambda function, and stores the
+    agent ARNs in SSM Parameter Store.  Requires create_agents = true.
+    When false (default), you must supply activation_key manually in agents.
+  EOT
+  type        = bool
+  default     = false
+}
+
 variable "create_alarms" {
   description = "Set true to create CloudWatch alarms for DataSync tasks."
   type        = bool
@@ -285,10 +296,52 @@ variable "object_storage_locations" {
 # ---------------------------------------------------------------------------
 
 variable "agents" {
-  description = "Map of DataSync agents to activate (requires create_agents = true)."
+  description = <<-EOT
+    Map of DataSync agent configurations (requires create_agents = true).
+
+    BYO mode (auto_activate_agents = false):
+      Provide activation_key obtained manually from the agent console.
+
+    Auto-activation mode (auto_activate_agents = true):
+      Provide EC2 launch parameters. The module will:
+        1. Launch an EC2 instance with the DataSync agent AMI
+        2. Invoke a Lambda that fetches the activation key from the agent
+           HTTP endpoint and calls datasync:CreateAgent
+        3. Store the agent ARN in SSM Parameter Store at:
+           /datasync/<name_prefix>/<key>/arn
+
+    Common fields (both modes):
+      name                — friendly agent name in DataSync console
+      vpc_endpoint_id     — VPC endpoint ID if using DataSync PrivateLink
+      subnet_arns         — subnet ARNs for PrivateLink configuration
+      security_group_arns — SG ARNs for PrivateLink configuration
+      tags                — extra tags
+
+    Auto-activation-only fields:
+      ami_id              — DataSync agent AMI (region-specific; find in
+                            AWS console: DataSync > Get started > Amazon EC2)
+      instance_type       — EC2 instance type (default: m5.2xlarge)
+      subnet_id           — EC2 subnet ID (agent must reach DataSync endpoints)
+      ec2_security_group_ids  — SG IDs for the agent EC2 instance
+      iam_instance_profile    — instance profile with AmazonSSMManagedInstanceCore
+      key_name            — (optional) EC2 SSH key pair name
+      private_link_endpoint   — (optional) VPC endpoint IP for PrivateLink activation
+      activation_region   — (optional) region to register in (default: current)
+  EOT
   type = map(object({
+    # BYO mode
     activation_key      = optional(string, null)
     ip_address          = optional(string, null)
+    # Auto-activation mode
+    ami_id              = optional(string, null)
+    instance_type       = optional(string, "m5.2xlarge")
+    subnet_id           = optional(string, null)
+    ec2_security_group_ids  = optional(list(string), [])
+    iam_instance_profile    = optional(string, null)
+    key_name            = optional(string, null)
+    private_link_endpoint = optional(string, null)
+    activation_region   = optional(string, null)
+    # Common
     name                = optional(string, null)
     vpc_endpoint_id     = optional(string, null)
     subnet_arns         = optional(list(string), [])
@@ -296,6 +349,25 @@ variable "agents" {
     tags                = optional(map(string), {})
   }))
   default = {}
+}
+
+# ---------------------------------------------------------------------------
+# Activation Lambda VPC config (required when auto_activate_agents = true)
+# ---------------------------------------------------------------------------
+variable "activation_lambda_subnet_ids" {
+  description = "Subnet IDs for the activation Lambda (must reach agent EC2 on port 80)."
+  type        = list(string)
+  default     = []
+}
+variable "activation_lambda_security_group_ids" {
+  description = "Security group IDs for the activation Lambda."
+  type        = list(string)
+  default     = []
+}
+variable "activation_lambda_timeout" {
+  description = "Timeout seconds for the activation Lambda. Agent boot may take 1-2 minutes."
+  type        = number
+  default     = 300
 }
 
 # ---------------------------------------------------------------------------

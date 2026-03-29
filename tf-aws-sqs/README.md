@@ -10,6 +10,9 @@ Terraform module for AWS SQS queues (Standard and FIFO).
 - `prevent_destroy` lifecycle guard
 - Queue policy support
 
+## Versioning
+
+Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.
 ## Usage
 
 ```hcl
@@ -20,3 +23,4 @@ module "queue" {
   kms_master_key_id = module.kms.key_id
 }
 ```
+

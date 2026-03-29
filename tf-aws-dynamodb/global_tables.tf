@@ -55,8 +55,8 @@ resource "aws_dynamodb_table" "global" {
   }
 
   server_side_encryption {
-    enabled           = true
-    kms_master_key_id = each.value.kms_key_arn
+    enabled     = true
+    kms_key_arn = each.value.kms_key_arn
   }
 
   dynamic "global_secondary_index" {

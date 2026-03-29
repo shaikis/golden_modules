@@ -6,9 +6,9 @@ project     = "platform"
 owner       = "app-team"
 cost_center = "CC-200"
 
-instance_type   = "t3.large"
-subnet_ids      = ["subnet-0prod1", "subnet-0prod2", "subnet-0prod3"]
-security_group_ids      = ["sg-0appprod"]
+instance_type             = "t3.large"
+subnet_ids                = ["subnet-0prod1", "subnet-0prod2", "subnet-0prod3"]
+security_group_ids        = ["sg-0appprod"]
 iam_instance_profile_name = "ec2-ssm-instance-profile"
 
 min_size         = 2
@@ -18,6 +18,9 @@ desired_capacity = 4
 enable_cpu_scaling = true
 cpu_target_value   = 65
 
-scheduled_actions = {}   # no cost-saving schedule in prod
+scheduled_actions = {} # no cost-saving schedule in prod
 
-tags = { Team = "app-team"; Criticality = "high" }
+tags = {
+  Team        = "app-team"
+  Criticality = "high"
+}

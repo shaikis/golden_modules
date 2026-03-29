@@ -75,6 +75,25 @@ module "rds_primary" {
   create_parameter_group = var.create_parameter_group
   parameter_group_family = var.parameter_group_family
   parameters             = var.parameters
+
+  # ── Oracle national character set ────────────────────────────────────────
+  # AL16UTF16 (default) is required for Unicode data in NCHAR/NVARCHAR2/NCLOB
+  # UTF8 is the alternative; cannot be changed after creation.
+  nchar_character_set_name = var.nchar_character_set_name
+
+  # ── Oracle Option Group ───────────────────────────────────────────────────
+  # Common Oracle options:
+  #   APEX                        — Oracle Application Express
+  #   OEM / OEM_AGENT             — Oracle Enterprise Manager
+  #   STATSPACK                   — Performance statistics (alternative to AWR)
+  #   NATIVE_NETWORK_ENCRYPTION   — Encrypt Oracle Net traffic (no SSL cert needed)
+  #   SSL                         — TLS encryption via Oracle Wallet
+  #   S3_INTEGRATION              — Direct SELECT/INSERT from S3
+  #   TIMEZONE_FILE_AUTOUPGRADE   — Auto-upgrade DST time zone data
+  create_option_group               = var.create_option_group
+  option_group_engine_name          = var.oracle_edition
+  option_group_major_engine_version = var.option_group_major_engine_version
+  options                           = var.options
 }
 
 # Pattern 1: Automated backup replication

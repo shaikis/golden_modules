@@ -56,5 +56,5 @@ output "aws_account_id" {
 
 output "aws_region" {
   description = "AWS region in which the keys were created."
-  value       = data.aws_region.current.name
+  value       = data.aws_region.current.region
 }

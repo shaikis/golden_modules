@@ -74,6 +74,9 @@ Covers all 9 SSM features. Every feature is opt-in. Use one, some, or all togeth
 
 ---
 
+## Versioning
+
+Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.
 ## Usage Examples
 
 ### Example 1 — Parameter Store only
@@ -804,3 +807,4 @@ Valid values for `replicate_to` are `NONE` and `SSM_DOCUMENT`. Use `SSM_DOCUMENT
 ### Hybrid activation — expiration_date
 
 If `activation_expiration_date` is `null`, AWS defaults the expiration to 24 hours from creation (not 30 days as the variable description suggests — plan accordingly and set an explicit date for long-lived activations).
+

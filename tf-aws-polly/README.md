@@ -209,3 +209,8 @@ Constraints:
 | `lexicon_arns` | Map of lexicon ARNs (key → ARN). |
 | `iam_role_arn` | IAM role ARN used for Polly access. |
 | `iam_role_name` | IAM role name (null when BYO). |
+
+## Versioning
+
+Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.
+

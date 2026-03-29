@@ -25,6 +25,9 @@ Terraform module for AWS Lambda functions.
 | Reserved concurrency | `-1` (no throttle; set explicitly for prod) |
 | VPC | Optional |
 
+## Versioning
+
+Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.
 ## Usage
 
 ```hcl
@@ -43,3 +46,4 @@ module "lambda" {
 
 - [Basic](examples/basic/)
 - [Complete](examples/complete/)
+

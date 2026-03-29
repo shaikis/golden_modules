@@ -52,8 +52,20 @@ module "restore" {
   enable_s3_restore  = var.enable_s3_restore
   enable_ec2_restore = var.enable_ec2_restore
   enable_rds_restore = var.enable_rds_restore
+  enable_dynamodb_restore = var.enable_dynamodb_restore
+  enable_ebs_restore      = var.enable_ebs_restore
   enable_efs_restore = var.enable_efs_restore
   enable_fsx_restore = var.enable_fsx_restore
+  enable_redshift_restore = var.enable_redshift_restore
+
+  rds_resource_arns      = var.rds_resource_arns
+  dynamodb_resource_arns = var.dynamodb_resource_arns
+  ebs_resource_arns      = var.ebs_resource_arns
+  efs_resource_arns      = var.efs_resource_arns
+  fsx_resource_arns      = var.fsx_resource_arns
+  redshift_resource_arns = var.redshift_resource_arns
+  kms_key_arns           = var.kms_key_arns
+  pass_role_arns         = var.pass_role_arns
 
   create_sns_topic = var.create_sns_topic
   sns_topic_arn    = var.sns_topic_arn

@@ -15,6 +15,9 @@ Production-grade Terraform module for Amazon Managed Workflows for Apache Airflo
 - Secrets Manager backend support through configuration options
 - Requirements and plugins versioning via S3 object versions
 
+## Versioning
+
+Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.
 ## Usage
 
 ### Minimal
@@ -323,3 +326,4 @@ environments = {
 |------|---------|
 | terraform | >= 1.5.0 |
 | aws | >= 5.0.0 |
+

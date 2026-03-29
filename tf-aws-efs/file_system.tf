@@ -51,10 +51,11 @@ resource "aws_security_group" "efs" {
 resource "aws_efs_file_system" "this" {
   count = var.create ? 1 : 0
 
-  encrypted        = var.encrypted
-  kms_key_id       = var.kms_key_arn
-  performance_mode = var.performance_mode
-  throughput_mode  = var.throughput_mode
+  encrypted              = var.encrypted
+  kms_key_id             = var.kms_key_arn
+  performance_mode       = var.performance_mode
+  throughput_mode        = var.throughput_mode
+  availability_zone_name = var.availability_zone_name
 
   provisioned_throughput_in_mibps = (
     var.throughput_mode == "provisioned" ? var.provisioned_throughput_in_mibps : null
@@ -102,4 +103,12 @@ resource "aws_efs_backup_policy" "this" {
   backup_policy {
     status = "ENABLED"
   }
+}
+
+resource "aws_efs_file_system_policy" "this" {
+  count = var.create && var.file_system_policy != null ? 1 : 0
+
+  file_system_id                     = aws_efs_file_system.this[0].id
+  policy                             = var.file_system_policy
+  bypass_policy_lockout_safety_check = var.bypass_policy_lockout_safety_check
 }

@@ -96,8 +96,8 @@ variable "memory_target_value" {
 }
 variable "tags" {
   type    = map(string)
-  default = {
-} }
+  default = {}
+}
 
 variable "scheduled_actions" {
   type = map(object({

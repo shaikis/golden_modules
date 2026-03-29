@@ -1,0 +1,9 @@
+variable "name"               { type = string; default = "myapp" }
+variable "name_prefix"        { type = string; default = "" }
+variable "environment"        { type = string; default = "prod" }
+variable "project"            { type = string; default = "" }
+variable "owner"              { type = string; default = "" }
+variable "cost_center"        { type = string; default = "" }
+variable "domain_names"       { type = list(string); default = [] }
+variable "acm_certificate_arn" { type = string; default = null }
+variable "price_class"        { type = string; default = "PriceClass_100" }

@@ -16,6 +16,9 @@ Terraform module for S3 bucket with built-in backup strategies:
 | AWS Backup | Point-in-time restore | `enable_aws_backup = true` |
 | Object Lock (WORM) | Ransomware protection | `object_lock_enabled = true` |
 
+## Versioning
+
+Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.
 ## Usage
 
 ```hcl
@@ -74,3 +77,4 @@ module "s3_dr_bucket" {
 
 - [Basic SRR](examples/srr/)
 - [Complete CRR + AWS Backup](examples/complete/)
+

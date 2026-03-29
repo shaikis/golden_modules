@@ -85,6 +85,12 @@ variable "encrypted" {
   default     = true
 }
 
+variable "availability_zone_name" {
+  description = "Availability Zone name for One Zone EFS, for example us-east-1a. Leave null for Regional EFS."
+  type        = string
+  default     = null
+}
+
 variable "kms_key_arn" {
   description = "KMS key ARN for encryption. Null = AWS-managed key (aws/elasticfilesystem)."
   type        = string
@@ -225,4 +231,19 @@ variable "replication_destination_availability_zone" {
   description = "Specific AZ in the destination region for the replicated file system (optional)."
   type        = string
   default     = null
+}
+
+# ---------------------------------------------------------------------------
+# File System Policy
+# ---------------------------------------------------------------------------
+variable "file_system_policy" {
+  description = "Optional JSON IAM policy document to attach to the EFS file system."
+  type        = string
+  default     = null
+}
+
+variable "bypass_policy_lockout_safety_check" {
+  description = "Whether to allow a file system policy that could lock out future updates. Use with care."
+  type        = bool
+  default     = false
 }

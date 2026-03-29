@@ -222,10 +222,7 @@ resource "aws_route53_record" "this" {
   }
 
   # ── Multivalue answer routing ─────────────────────────────────────────────────
-  dynamic "multivalue_answer_routing_policy" {
-    for_each = each.value.multivalue_answer == true ? [true] : []
-    content {}
-  }
+  multivalue_answer_routing_policy = each.value.multivalue_answer == true ? true : null
 
   # ── IP-based routing ─────────────────────────────────────────────────────────
   dynamic "cidr_routing_policy" {

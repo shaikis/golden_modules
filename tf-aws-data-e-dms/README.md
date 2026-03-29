@@ -21,6 +21,9 @@ Covers replication instances, source and target endpoints (all engine types), re
 
 ---
 
+## Versioning
+
+Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.
 ## Usage
 
 ### Minimal
@@ -233,3 +236,4 @@ For tables with BLOB, CLOB, or TEXT columns, enable limited LOB mode in task set
 ### 12. DMS Fleet Advisor for migration planning
 
 Before provisioning DMS resources with this module, use AWS DMS Fleet Advisor to auto-discover on-premises databases, profile schema complexity, and receive automated recommendations for replication instance sizing and migration strategy. Fleet Advisor output directly informs the `replication_instance_class` and `allocated_storage` values to use in this module.
+

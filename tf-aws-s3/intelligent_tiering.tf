@@ -12,10 +12,7 @@ resource "aws_s3_bucket_intelligent_tiering_configuration" "this" {
     for_each = each.value.filter != null ? [each.value.filter] : []
     content {
       prefix = filter.value.prefix
-      dynamic "tag" {
-        for_each = filter.value.tags
-        content { key = tag.key; value = tag.value }
-      }
+      tags   = filter.value.tags
     }
   }
 

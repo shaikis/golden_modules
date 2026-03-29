@@ -247,3 +247,65 @@ variable "alarm_period_seconds" {
   type        = number
   default     = 300
 }
+
+# ---------------------------------------------------------------------------
+# MSK Replicators (cross-region topic replication)
+# ---------------------------------------------------------------------------
+
+variable "replicators" {
+  description = <<-EOT
+    Map of MSK Replicator configurations for cross-region Kafka topic replication.
+    Each replicator continuously mirrors topics from a source MSK cluster to a target cluster.
+
+    Key fields:
+      source_cluster_arn          - ARN of the source MSK cluster (this region)
+      target_cluster_arn          - ARN of the target MSK cluster (peer region)
+      source_subnet_ids           - Subnets in the source VPC for replicator ENIs
+      target_subnet_ids           - Subnets in the target VPC for replicator ENIs
+      source_security_group_ids   - Security groups for source VPC connectivity
+      target_security_group_ids   - Security groups for target VPC connectivity
+      service_execution_role_arn  - BYO IAM role; auto-created when null
+      target_compression_type     - NONE | GZIP | SNAPPY | LZ4 | ZSTD
+      topic_replication:
+        topics_to_replicate              - List of topic name patterns (supports wildcards)
+        topics_to_exclude                - List of topic name patterns to skip
+        detect_and_copy_new_topics       - Auto-replicate newly created topics
+        copy_access_control_lists_for_topics - Mirror topic ACLs
+        copy_topic_configurations        - Mirror topic config (retention, partitions)
+        starting_position_type           - LATEST | EARLIEST
+      consumer_group_replication (optional):
+        consumer_groups_to_replicate          - Consumer group patterns to replicate
+        consumer_groups_to_exclude            - Consumer group patterns to skip
+        detect_and_copy_new_consumer_groups   - Auto-replicate new consumer groups
+        synchronise_consumer_group_offsets    - Keep consumer offsets in sync
+  EOT
+  type = map(object({
+    description                = optional(string, "")
+    source_cluster_arn         = string
+    target_cluster_arn         = string
+    source_subnet_ids          = list(string)
+    target_subnet_ids          = list(string)
+    source_security_group_ids  = list(string)
+    target_security_group_ids  = list(string)
+    service_execution_role_arn = optional(string, null)
+    target_compression_type    = optional(string, "NONE")
+    tags                       = optional(map(string), {})
+
+    topic_replication = object({
+      topics_to_replicate                  = optional(list(string), [".*"])
+      topics_to_exclude                    = optional(list(string), [".*[\\-\\.]internal", ".*\\.replica", "__.*"])
+      detect_and_copy_new_topics           = optional(bool, true)
+      copy_access_control_lists_for_topics = optional(bool, true)
+      copy_topic_configurations            = optional(bool, true)
+      starting_position_type               = optional(string, "LATEST")
+    })
+
+    consumer_group_replication = optional(object({
+      consumer_groups_to_replicate        = optional(list(string), [".*"])
+      consumer_groups_to_exclude          = optional(list(string), [])
+      detect_and_copy_new_consumer_groups = optional(bool, true)
+      synchronise_consumer_group_offsets  = optional(bool, true)
+    }), null)
+  }))
+  default = {}
+}

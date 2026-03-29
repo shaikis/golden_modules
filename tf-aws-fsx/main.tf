@@ -1,103 +1,21 @@
 # ===========================================================================
-# FSx for WINDOWS FILE SERVER
-# ===========================================================================
-resource "aws_fsx_windows_file_system" "this" {
-  count = var.windows != null ? 1 : 0
-
-  storage_capacity                  = var.windows.storage_capacity
-  subnet_ids                        = var.windows.subnet_ids
-  security_group_ids                = var.windows.security_group_ids
-  deployment_type                   = var.windows.deployment_type
-  preferred_subnet_id               = var.windows.deployment_type == "MULTI_AZ_1" ? var.windows.preferred_subnet_id : null
-  storage_type                      = var.windows.storage_type
-  throughput_capacity               = var.windows.throughput_capacity
-  automatic_backup_retention_days   = var.windows.automatic_backup_retention_days
-  daily_automatic_backup_start_time = var.windows.daily_automatic_backup_start_time
-  weekly_maintenance_start_time     = var.windows.weekly_maintenance_start_time
-  copy_tags_to_backups              = var.windows.copy_tags_to_backups
-  skip_final_backup                 = var.windows.skip_final_backup
-  kms_key_id                        = var.kms_key_arn
-  aliases                           = var.windows.aliases
-
-  # AWS Managed AD (preferred)
-  active_directory_id = var.windows.active_directory_id
-
-  # Self-managed AD (when AWS Managed AD not used)
-  dynamic "self_managed_active_directory" {
-    for_each = var.windows.active_directory_id == null && var.windows.self_managed_ad != null ? [var.windows.self_managed_ad] : []
-    content {
-      domain_name                            = self_managed_active_directory.value.domain_name
-      username                               = self_managed_active_directory.value.username
-      password                               = self_managed_active_directory.value.password
-      dns_ips                                = self_managed_active_directory.value.dns_ips
-      organizational_unit_distinguished_name = self_managed_active_directory.value.organizational_unit
-      file_system_administrators_group       = self_managed_active_directory.value.file_system_admin_group
-    }
-  }
-
-  dynamic "audit_log_configuration" {
-    for_each = var.windows.audit_log_destination != null ? [1] : []
-    content {
-      audit_log_destination             = var.windows.audit_log_destination
-      file_access_audit_log_level       = var.windows.file_access_audit_log_level
-      file_share_access_audit_log_level = var.windows.file_access_audit_log_level
-    }
-  }
-
-  tags = merge(local.tags, { Name = "${local.name}-windows" })
-
-  lifecycle {
-    prevent_destroy = true
-    ignore_changes  = [weekly_maintenance_start_time, daily_automatic_backup_start_time]
-  }
-}
-
-# ===========================================================================
-# FSx for LUSTRE
-# ===========================================================================
-resource "aws_fsx_lustre_file_system" "this" {
-  count = var.lustre != null ? 1 : 0
-
-  storage_capacity                = var.lustre.storage_capacity
-  subnet_ids                      = var.lustre.subnet_ids
-  security_group_ids              = var.lustre.security_group_ids
-  deployment_type                 = var.lustre.deployment_type
-  storage_type                    = var.lustre.storage_type
-  per_unit_storage_throughput     = var.lustre.per_unit_storage_throughput
-  data_compression_type           = var.lustre.data_compression_type
-  automatic_backup_retention_days = var.lustre.automatic_backup_retention_days
-  copy_tags_to_backups            = var.lustre.copy_tags_to_backups
-  weekly_maintenance_start_time   = var.lustre.weekly_maintenance_start_time
-  file_system_type_version        = var.lustre.file_system_type_version
-  import_path                     = var.lustre.import_path
-  export_path                     = var.lustre.export_path
-  kms_key_id                      = var.kms_key_arn
-
-  tags = merge(local.tags, { Name = "${local.name}-lustre" })
-
-  lifecycle {
-    prevent_destroy = true
-  }
-}
-
-# ===========================================================================
 # FSx for NetApp ONTAP
 # ===========================================================================
 resource "aws_fsx_ontap_file_system" "this" {
-  count = var.ontap != null ? 1 : 0
+  count = local.resolved_ontap != null ? 1 : 0
 
-  storage_capacity                  = var.ontap.storage_capacity
-  subnet_ids                        = var.ontap.subnet_ids
-  security_group_ids                = var.ontap.security_group_ids
-  deployment_type                   = var.ontap.deployment_type
-  preferred_subnet_id               = var.ontap.deployment_type == "MULTI_AZ_1" ? var.ontap.preferred_subnet_id : null
-  throughput_capacity               = var.ontap.throughput_capacity
-  weekly_maintenance_start_time     = var.ontap.weekly_maintenance_start_time
-  automatic_backup_retention_days   = var.ontap.automatic_backup_retention_days
-  daily_automatic_backup_start_time = var.ontap.daily_automatic_backup_start_time
-  fsx_admin_password                = var.ontap.fsx_admin_password
-  route_table_ids                   = var.ontap.route_table_ids
-  ha_pairs                          = var.ontap.ha_pairs
+  storage_capacity                  = local.resolved_ontap.storage_capacity
+  subnet_ids                        = local.resolved_ontap.subnet_ids
+  security_group_ids                = local.resolved_ontap.security_group_ids
+  deployment_type                   = local.resolved_ontap.deployment_type
+  preferred_subnet_id               = local.resolved_ontap.deployment_type == "MULTI_AZ_1" ? local.resolved_ontap.preferred_subnet_id : null
+  throughput_capacity               = local.resolved_ontap.throughput_capacity
+  weekly_maintenance_start_time     = local.resolved_ontap.weekly_maintenance_start_time
+  automatic_backup_retention_days   = local.resolved_ontap.automatic_backup_retention_days
+  daily_automatic_backup_start_time = local.resolved_ontap.daily_automatic_backup_start_time
+  fsx_admin_password                = local.resolved_ontap.fsx_admin_password
+  route_table_ids                   = local.resolved_ontap.route_table_ids
+  ha_pairs                          = local.resolved_ontap.ha_pairs
   kms_key_id                        = var.kms_key_arn
 
   tags = merge(local.tags, { Name = "${local.name}-ontap" })
@@ -110,7 +28,7 @@ resource "aws_fsx_ontap_file_system" "this" {
 
 # ONTAP Storage Virtual Machines (SVMs)
 resource "aws_fsx_ontap_storage_virtual_machine" "this" {
-  for_each = var.ontap != null ? var.ontap.svms : {}
+  for_each = local.resolved_ontap != null ? local.resolved_ontap.svms : {}
 
   file_system_id             = aws_fsx_ontap_file_system.this[0].id
   name                       = each.value.name
@@ -143,7 +61,7 @@ resource "aws_fsx_ontap_storage_virtual_machine" "this" {
 resource "aws_fsx_ontap_volume" "this" {
   for_each = {
     for item in flatten([
-      for svm_key, svm_val in(var.ontap != null ? var.ontap.svms : {}) : [
+      for svm_key, svm_val in(local.resolved_ontap != null ? local.resolved_ontap.svms : {}) : [
         for vol_key, vol_val in svm_val.volumes : {
           key     = "${svm_key}-${vol_key}"
           svm_key = svm_key
@@ -220,9 +138,7 @@ resource "aws_fsx_openzfs_volume" "this" {
     each.value.parent_volume_id,
     aws_fsx_openzfs_file_system.this[0].root_volume_id
   )
-  name = each.value.name
-  # Defaults to "/<volume-name>" when not explicitly provided (junction_path is required by AWS)
-  junction_path                    = coalesce(each.value.junction_path, "/${each.value.name}")
+  name                             = each.value.name
   storage_capacity_quota_gib       = each.value.storage_capacity_quota_gib
   storage_capacity_reservation_gib = each.value.storage_capacity_reservation_gib
   data_compression_type            = each.value.data_compression_type
@@ -273,12 +189,21 @@ resource "aws_iam_role" "ontap_backup" {
     }]
   })
 
-  managed_policy_arns = [
-    "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup",
-    "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForRestores",
-  ]
-
   tags = local.tags
+}
+
+resource "aws_iam_role_policy_attachment" "ontap_backup_backup" {
+  count = var.ontap != null && var.enable_ontap_backup ? 1 : 0
+
+  role       = aws_iam_role.ontap_backup[0].name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup"
+}
+
+resource "aws_iam_role_policy_attachment" "ontap_backup_restores" {
+  count = var.ontap != null && var.enable_ontap_backup ? 1 : 0
+
+  role       = aws_iam_role.ontap_backup[0].name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForRestores"
 }
 
 # ---------------------------------------------------------------------------

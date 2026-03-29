@@ -25,6 +25,9 @@ Terraform module for AWS EC2 instances with security-hardened defaults.
 | `lifecycle.prevent_destroy` | `true` |
 | `lifecycle.ignore_changes [ami]` | AMI drift won't cause replacement |
 
+## Versioning
+
+Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.
 ## Usage
 
 ```hcl
@@ -44,3 +47,4 @@ module "ec2" {
 
 - [Basic](examples/basic/)
 - [Complete](examples/complete/)
+

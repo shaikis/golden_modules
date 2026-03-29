@@ -61,6 +61,9 @@ A production-ready Terraform module that provisions an **Amazon DocumentDB** (Mo
 
 ---
 
+## Versioning
+
+Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.
 ## Usage
 
 ### Minimal — Horde dev (single instance, no deletion protection)
@@ -321,3 +324,4 @@ The `credentials_secret_arn` output can be passed directly to the Horde ECS task
 - **`promotion_tier`** values are set to the instance index (`0`, `1`, `2`, …). Instance `0` is preferred as primary during failover; higher-numbered instances are considered last.
 - When `skip_final_snapshot = false` (the default) you must either set `final_snapshot_identifier` or allow the module to derive one as `<name>-<environment>-final-snapshot`. The cluster **cannot be destroyed** while `deletion_protection = true` — disable it first or set it to `false` before running `terraform destroy`.
 - **DocumentDB does not support all MongoDB features.** Review the [AWS DocumentDB compatibility guide](https://docs.aws.amazon.com/documentdb/latest/developerguide/mongo-apis.html) before migrating existing workloads.
+

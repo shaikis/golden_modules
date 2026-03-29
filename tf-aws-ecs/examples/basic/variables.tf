@@ -24,8 +24,8 @@ variable "cost_center" {
 }
 variable "tags" {
   type    = map(string)
-  default = {
-} }
+  default = {}
+}
 
 variable "container_image" {
   type    = string

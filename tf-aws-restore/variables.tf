@@ -63,6 +63,24 @@ variable "enable_rds_restore" {
   default     = true
 }
 
+variable "enable_dynamodb_restore" {
+  description = "Attach DynamoDB restore permissions to the IAM role."
+  type        = bool
+  default     = false
+}
+
+variable "enable_ebs_restore" {
+  description = "Attach EBS restore permissions to the IAM role."
+  type        = bool
+  default     = false
+}
+
+variable "enable_redshift_restore" {
+  description = "Attach Redshift restore permissions to the IAM role."
+  type        = bool
+  default     = false
+}
+
 variable "enable_efs_restore" {
   description = "Attach EFS restore permissions to the IAM role."
   type        = bool
@@ -73,6 +91,54 @@ variable "enable_fsx_restore" {
   description = "Attach FSx restore permissions to the IAM role."
   type        = bool
   default     = false
+}
+
+variable "rds_resource_arns" {
+  description = "RDS DB instance, cluster, or snapshot ARNs allowed for restore operations."
+  type        = list(string)
+  default     = []
+}
+
+variable "dynamodb_resource_arns" {
+  description = "DynamoDB table or backup ARNs allowed for restore operations."
+  type        = list(string)
+  default     = []
+}
+
+variable "ebs_resource_arns" {
+  description = "EBS volume or snapshot ARNs allowed for restore operations."
+  type        = list(string)
+  default     = []
+}
+
+variable "efs_resource_arns" {
+  description = "EFS file system ARNs allowed for restore operations."
+  type        = list(string)
+  default     = []
+}
+
+variable "fsx_resource_arns" {
+  description = "FSx file system or backup ARNs allowed for restore operations."
+  type        = list(string)
+  default     = []
+}
+
+variable "redshift_resource_arns" {
+  description = "Redshift cluster or snapshot ARNs allowed for restore operations."
+  type        = list(string)
+  default     = []
+}
+
+variable "kms_key_arns" {
+  description = "KMS key ARNs allowed for decrypt and grant operations during restore."
+  type        = list(string)
+  default     = []
+}
+
+variable "pass_role_arns" {
+  description = "IAM role ARNs that AWS Backup may pass during restore workflows."
+  type        = list(string)
+  default     = []
 }
 
 # ────────────────────────────────────────────────────────────────────────────

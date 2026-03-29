@@ -35,6 +35,12 @@ variable "amazon_side_asn" {
   default     = 64512
 }
 
+variable "description" {
+  description = "Optional description for the Transit Gateway."
+  type        = string
+  default     = null
+}
+
 variable "auto_accept_shared_attachments" {
   type    = string
   default = "disable"
@@ -59,6 +65,13 @@ variable "multicast_support" {
   type    = string
   default = "disable"
 }
+
+variable "security_group_referencing_support" {
+  description = "Enable or disable security group referencing support on the Transit Gateway."
+  type        = string
+  default     = null
+}
+
 variable "transit_gateway_cidr_blocks" {
   type    = list(string)
   default = []
@@ -77,7 +90,9 @@ variable "vpc_attachments" {
     appliance_mode_support                          = optional(string, "disable")
     transit_gateway_default_route_table_association = optional(bool, true)
     transit_gateway_default_route_table_propagation = optional(bool, true)
-    route_table_key                                 = optional(string, null) # key into tgw_route_tables
+    association_route_table_key                     = optional(string, null)   # key into tgw_route_tables
+    propagation_route_table_keys                    = optional(list(string), [])
+    route_table_key                                 = optional(string, null)   # backward-compatible fallback
   }))
   default = {}
 }
@@ -96,10 +111,11 @@ variable "tgw_route_tables" {
 variable "tgw_routes" {
   description = "Static routes in TGW route tables."
   type = map(object({
-    route_table_key  = string
-    destination_cidr = string
-    attachment_key   = optional(string, null) # key into vpc_attachments or vpn_attachments
-    blackhole        = optional(bool, false)
+    route_table_key               = string
+    destination_cidr              = string
+    attachment_key                = optional(string, null) # key into vpc_attachments
+    transit_gateway_attachment_id = optional(string, null) # direct attachment ID for VPN/DX/other attachments
+    blackhole                     = optional(bool, false)
   }))
   default = {}
 }
@@ -120,7 +136,7 @@ variable "vpn_attachments" {
 # Direct Connect Gateway Attachment
 # ---------------------------------------------------------------------------
 variable "dx_gateway_attachments" {
-  description = "Map of Direct Connect Gateway association proposals."
+  description = "Map of Direct Connect Gateway attachments. If dx_gateway_owner_account_id is set, creates a cross-account association proposal; otherwise creates a same-account association."
   type = map(object({
     dx_gateway_id               = string
     dx_gateway_owner_account_id = optional(string, null)

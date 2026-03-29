@@ -18,6 +18,9 @@ This module provisions an **AWS API Gateway v2 HTTP API** with Lambda proxy inte
 
 ---
 
+## Versioning
+
+Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.
 ## Usage
 
 ```hcl
@@ -157,3 +160,4 @@ The `invoke_url` output already includes the stage path (e.g., `https://<api-id>
 |------|---------|
 | Terraform | >= 1.3.0 |
 | AWS Provider | >= 5.0 |
+

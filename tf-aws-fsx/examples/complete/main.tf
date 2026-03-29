@@ -2,8 +2,19 @@ provider "aws" { region = var.aws_region }
 
 module "kms" {
   source      = "../../../tf-aws-kms"
-  name        = "${var.name}-fsx"
-  environment = var.environment
+  name_prefix = var.name
+  tags = {
+    Environment = var.environment
+    Project     = var.project
+    Owner       = var.owner
+    CostCenter  = var.cost_center
+  }
+
+  keys = {
+    fsx = {
+      description = "KMS key for ${var.name} FSx resources"
+    }
+  }
 }
 
 module "fsx" {
@@ -13,7 +24,7 @@ module "fsx" {
   project     = var.project
   owner       = var.owner
   cost_center = var.cost_center
-  kms_key_arn = module.kms.key_arn
+  kms_key_arn = module.kms.key_arns["fsx"]
 
   windows = var.windows
   lustre  = var.lustre
@@ -30,11 +41,3 @@ module "fsx" {
   ontap_cross_region_backup_kms_key_arn    = var.ontap_cross_region_backup_kms_key_arn
   ontap_cross_region_backup_retention_days = var.ontap_cross_region_backup_retention_days
 }
-
-output "windows_dns_name" { value = module.fsx.windows_fs_dns_name }
-output "lustre_dns_name" { value = module.fsx.lustre_fs_dns_name }
-output "ontap_svm_ids" { value = module.fsx.ontap_svm_ids }
-output "ontap_volume_junctions" { value = module.fsx.ontap_volume_junction_paths }
-output "openzfs_dns_name" { value = module.fsx.openzfs_fs_dns_name }
-output "ontap_backup_vault_arn" { value = module.fsx.ontap_backup_vault_arn }
-output "ontap_backup_plan_arn" { value = module.fsx.ontap_backup_plan_arn }

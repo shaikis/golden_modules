@@ -28,8 +28,8 @@ variable "cost_center" {
 }
 variable "tags" {
   type    = map(string)
-  default = {
-} }
+  default = {}
+}
 
 # When iam_role_arn is set, create_iam_role is automatically treated as false
 # When sns_topic_arn is set, create_sns_topic is automatically treated as false
@@ -53,11 +53,23 @@ variable "enable_rds_restore" {
   type    = bool
   default = true
 }
+variable "enable_dynamodb_restore" {
+  type    = bool
+  default = true
+}
+variable "enable_ebs_restore" {
+  type    = bool
+  default = false
+}
 variable "enable_efs_restore" {
   type    = bool
   default = true
 }
 variable "enable_fsx_restore" {
+  type    = bool
+  default = false
+}
+variable "enable_redshift_restore" {
   type    = bool
   default = false
 }
@@ -126,11 +138,31 @@ variable "rds_resource_arns" {
   type    = list(string)
   default = []
 }
+variable "ebs_resource_arns" {
+  type    = list(string)
+  default = []
+}
 variable "efs_resource_arns" {
   type    = list(string)
   default = []
 }
 variable "dynamodb_resource_arns" {
+  type    = list(string)
+  default = []
+}
+variable "fsx_resource_arns" {
+  type    = list(string)
+  default = []
+}
+variable "redshift_resource_arns" {
+  type    = list(string)
+  default = []
+}
+variable "kms_key_arns" {
+  type    = list(string)
+  default = []
+}
+variable "pass_role_arns" {
   type    = list(string)
   default = []
 }

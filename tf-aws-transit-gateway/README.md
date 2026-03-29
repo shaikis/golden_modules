@@ -21,6 +21,9 @@ Terraform module for AWS Transit Gateway — hub-and-spoke networking for on-pre
 - AWS RAM sharing to other accounts/OUs
 - `prevent_destroy` on TGW
 
+## Versioning
+
+Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.
 ## Usage
 
 ```hcl
@@ -63,3 +66,4 @@ module "vpn" {
 
 - [Basic](examples/basic/)
 - [Complete hub-and-spoke](examples/complete/)
+

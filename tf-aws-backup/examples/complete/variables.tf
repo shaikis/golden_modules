@@ -54,6 +54,18 @@ variable "dr_vault_arn" {
   default     = null
 }
 
+variable "create_dr_vault" {
+  description = "Create the DR vault in the DR region using provider alias aws.dr."
+  type        = bool
+  default     = true
+}
+
+variable "dr_vault_kms_key_arn" {
+  description = "Optional KMS key ARN for the DR vault when create_dr_vault = true."
+  type        = string
+  default     = null
+}
+
 variable "report_bucket" {
   description = "S3 bucket for backup reports"
   type        = string

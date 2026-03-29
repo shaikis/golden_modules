@@ -13,6 +13,11 @@ output "dns_name" {
   value       = var.create ? aws_efs_file_system.this[0].dns_name : null
 }
 
+output "availability_zone_name" {
+  description = "Availability Zone name for One Zone EFS, null for Regional EFS."
+  value       = var.create ? aws_efs_file_system.this[0].availability_zone_name : null
+}
+
 output "mount_target_ids" {
   description = "Map of subnet_id => mount_target_id"
   value       = { for k, v in aws_efs_mount_target.this : k => v.id }
@@ -45,4 +50,9 @@ output "replication_destination_file_system_id" {
     ? aws_efs_replication_configuration.this[0].destination[0].file_system_id
     : null
   )
+}
+
+output "file_system_policy_id" {
+  description = "ID of the EFS file system policy attachment, null when not configured."
+  value       = var.create && var.file_system_policy != null ? aws_efs_file_system_policy.this[0].id : null
 }

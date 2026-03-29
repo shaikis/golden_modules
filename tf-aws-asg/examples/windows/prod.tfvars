@@ -6,9 +6,9 @@ project     = "platform"
 owner       = "windows-team"
 cost_center = "CC-300"
 
-instance_type   = "m5.xlarge"
-root_volume_size = 150
-subnet_ids      = ["subnet-0prod1", "subnet-0prod2", "subnet-0prod3"]
+instance_type             = "m5.xlarge"
+root_volume_size          = 150
+subnet_ids                = ["subnet-0prod1", "subnet-0prod2", "subnet-0prod3"]
 security_group_ids        = ["sg-0winprod"]
 iam_instance_profile_name = "ec2-ssm-windows-profile"
 
@@ -20,7 +20,7 @@ min_size         = 2
 max_size         = 20
 desired_capacity = 4
 
-use_mixed_instances_policy      = false  # on-demand only for prod
+use_mixed_instances_policy      = false # on-demand only for prod
 on_demand_base_capacity         = 1
 on_demand_percentage_above_base = 100
 
@@ -31,4 +31,8 @@ memory_target_value   = 75
 
 scheduled_actions = {}
 
-tags = { Team = "windows-team"; OS = "windows"; Criticality = "high" }
+tags = {
+  Team        = "windows-team"
+  OS          = "windows"
+  Criticality = "high"
+}

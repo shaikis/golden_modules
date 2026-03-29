@@ -169,6 +169,48 @@ variable "parameters" {
   default = []
 }
 
+variable "nchar_character_set_name" {
+  description = "Oracle national character set: AL16UTF16 (default) or UTF8. Cannot change after creation."
+  type        = string
+  default     = "AL16UTF16"
+}
+
+variable "create_option_group" {
+  type    = bool
+  default = false
+}
+variable "option_group_major_engine_version" {
+  description = "Major engine version for option group, e.g. '19' for Oracle 19c."
+  type        = string
+  default     = "19"
+}
+variable "options" {
+  description = "Oracle option group options. See module variable docs for full schema."
+  type = list(object({
+    option_name                    = string
+    port                           = optional(number)
+    db_security_group_memberships  = optional(list(string))
+    vpc_security_group_memberships = optional(list(string))
+    option_settings = optional(list(object({
+      name  = string
+      value = string
+    })), [])
+  }))
+  default = [
+    # Native Network Encryption — encrypt Oracle Net traffic without SSL certs
+    {
+      option_name = "NATIVE_NETWORK_ENCRYPTION"
+      option_settings = [
+        { name = "SQLNET.ENCRYPTION_SERVER", value = "REQUIRED" },
+        { name = "SQLNET.ENCRYPTION_TYPES_SERVER", value = "AES256" },
+        { name = "SQLNET.CRYPTO_CHECKSUM_SERVER", value = "REQUIRED" },
+      ]
+    },
+    # Timezone file auto-upgrade — keeps DST data current after engine upgrades
+    { option_name = "TIMEZONE_FILE_AUTOUPGRADE" },
+  ]
+}
+
 variable "enable_automated_backup_replication" {
   type    = bool
   default = false

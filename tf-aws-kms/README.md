@@ -23,6 +23,9 @@ Terraform module for AWS KMS (Key Management Service).
 | Deletion protection | `lifecycle { prevent_destroy = true }` |
 | Deletion window | 30 days (configurable, min 7) |
 
+## Versioning
+
+Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.
 ## Usage
 
 ```hcl
@@ -84,3 +87,4 @@ module "kms" {
 
 - [Basic](examples/basic/) — minimal key with defaults
 - [Complete](examples/complete/) — all options including grants, multi-region, custom aliases
+

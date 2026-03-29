@@ -35,6 +35,9 @@ Production-grade Terraform module for **Amazon EventBridge** — custom event bu
 | `alarms.tf` | CloudWatch alarms per rule |
 | `iam.tf` | IAM roles for EventBridge and Pipes |
 
+## Versioning
+
+Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.
 ## Usage Scenarios
 
 ### 1. Scheduled ETL Trigger
@@ -513,3 +516,4 @@ module "eventbridge" {
 |---|---|
 | terraform | >= 1.3.0 |
 | aws | >= 5.0.0 |
+

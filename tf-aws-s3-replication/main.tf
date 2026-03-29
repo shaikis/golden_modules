@@ -108,7 +108,10 @@ data "aws_iam_policy_document" "source_policy" {
     content {
       sid    = "DenyInsecureTransport"
       effect = "Deny"
-      principals { type = "*"; identifiers = ["*"] }
+      principals {
+        type        = "*"
+        identifiers = ["*"]
+      }
       actions   = ["s3:*"]
       resources = [aws_s3_bucket.source.arn, "${aws_s3_bucket.source.arn}/*"]
       condition {
@@ -123,7 +126,10 @@ data "aws_iam_policy_document" "source_policy" {
     content {
       sid    = "RequireTLS12"
       effect = "Deny"
-      principals { type = "*"; identifiers = ["*"] }
+      principals {
+        type        = "*"
+        identifiers = ["*"]
+      }
       actions   = ["s3:*"]
       resources = [aws_s3_bucket.source.arn, "${aws_s3_bucket.source.arn}/*"]
       condition {
@@ -148,7 +154,10 @@ data "aws_iam_policy_document" "replication_assume" {
   count = (var.enable_srr || var.enable_crr) && var.replication_role_arn == null ? 1 : 0
   statement {
     effect    = "Allow"
-    principals { type = "Service"; identifiers = ["s3.amazonaws.com"] }
+    principals {
+      type        = "Service"
+      identifiers = ["s3.amazonaws.com"]
+    }
     actions   = ["sts:AssumeRole"]
   }
 }
@@ -417,10 +426,17 @@ resource "aws_iam_role" "backup" {
     }]
   })
 
-  managed_policy_arns = [
-    "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForS3Backup",
-    "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForS3Restore",
-  ]
-
   tags = local.tags
+}
+
+resource "aws_iam_role_policy_attachment" "backup_s3_backup" {
+  count      = var.enable_aws_backup ? 1 : 0
+  role       = aws_iam_role.backup[0].name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForS3Backup"
+}
+
+resource "aws_iam_role_policy_attachment" "backup_s3_restore" {
+  count      = var.enable_aws_backup ? 1 : 0
+  role       = aws_iam_role.backup[0].name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForS3Restore"
 }

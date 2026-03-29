@@ -63,3 +63,43 @@ variable "transparency_logging" {
   type        = bool
   default     = true
 }
+
+variable "certificate_authority_arn" {
+  description = <<-EOT
+    ARN of an AWS Private Certificate Authority (PCA) to use when issuing a
+    private certificate. When set, validation_method is ignored — Private CA
+    certificates are issued immediately without DNS/email validation.
+    Leave null (default) to request a public ACM certificate.
+  EOT
+  type    = string
+  default = null
+}
+
+variable "route53_zone_ids" {
+  description = <<-EOT
+    Map of domain name → Route 53 Hosted Zone ID for DNS validation.
+    Use this when the primary domain and SANs live in different hosted zones.
+
+    Example:
+      route53_zone_ids = {
+        "example.com"     = "Z1234567890ABC"
+        "api.other.com"   = "Z0987654321XYZ"
+      }
+
+    When set, this takes precedence over route53_zone_id.
+    When not set, route53_zone_id is used for ALL validation records.
+  EOT
+  type    = map(string)
+  default = {}
+}
+
+variable "early_renewal_duration" {
+  description = <<-EOT
+    Specifies the number of days before expiry to attempt renewal.
+    ACM auto-renews public certificates, but this triggers Terraform to
+    replace the certificate resource early (useful for Private CA certs).
+    Format: "p30d" (30 days), "p1m" (1 month). Leave null to disable.
+  EOT
+  type    = string
+  default = null
+}

@@ -15,6 +15,9 @@ Production-grade Terraform module for AWS Batch. Supports managed and unmanaged 
 - CloudWatch alarms: pending jobs, runnable count, failed jobs, success rate
 - All files pass `terraform fmt -check`
 
+## Versioning
+
+Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.
 ## Usage
 
 ### Minimal — Fargate Spot + one queue + one job
@@ -331,3 +334,4 @@ alarm_thresholds = {
 |------|---------|
 | terraform | >= 1.5.0 |
 | aws | >= 5.0.0 |
+

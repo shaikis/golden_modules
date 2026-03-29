@@ -85,7 +85,7 @@ resource "aws_iam_role_policy_attachment" "restore_s3" {
   policy_arn = "arn:aws:iam::aws:policy/AWSBackupServiceRolePolicyForS3Restore"
 }
 
-# Inline policy for RDS, EFS, DynamoDB, FSx restore permissions
+# Inline policy for resource-family restore permissions
 resource "aws_iam_role_policy" "restore_extended" {
   count = var.create_iam_role && var.iam_role_arn == null ? 1 : 0
   name  = "${local.prefix}-restore-extended"
@@ -94,12 +94,10 @@ resource "aws_iam_role_policy" "restore_extended" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = concat(
-      var.enable_rds_restore ? [{
+      var.enable_rds_restore && length(var.rds_resource_arns) > 0 ? [{
         Sid    = "RDSRestore"
         Effect = "Allow"
         Action = [
-          "rds:DescribeDBInstances",
-          "rds:DescribeDBClusters",
           "rds:CreateDBInstance",
           "rds:CreateDBCluster",
           "rds:RestoreDBInstanceFromDBSnapshot",
@@ -107,34 +105,84 @@ resource "aws_iam_role_policy" "restore_extended" {
           "rds:RestoreDBClusterFromSnapshot",
           "rds:RestoreDBClusterToPointInTime",
           "rds:CreateDBSubnetGroup",
-          "rds:DescribeDBSnapshots",
-          "rds:DescribeDBClusterSnapshots",
           "rds:AddTagsToResource",
           "rds:ListTagsForResource",
         ]
-        Resource = ["*"]
+        Resource = var.rds_resource_arns
       }] : [],
-      var.enable_efs_restore ? [{
+      var.enable_dynamodb_restore && length(var.dynamodb_resource_arns) > 0 ? [{
+        Sid    = "DynamoDBRestore"
+        Effect = "Allow"
+        Action = [
+          "dynamodb:CreateTable",
+          "dynamodb:ListTagsOfResource",
+          "dynamodb:RestoreTableFromBackup",
+          "dynamodb:RestoreTableToPointInTime",
+          "dynamodb:TagResource",
+        ]
+        Resource = var.dynamodb_resource_arns
+      }] : [],
+      var.enable_ebs_restore && length(var.ebs_resource_arns) > 0 ? [{
+        Sid    = "EBSRestore"
+        Effect = "Allow"
+        Action = [
+          "ec2:AttachVolume",
+          "ec2:CreateSnapshot",
+          "ec2:CreateTags",
+          "ec2:CreateVolume",
+        ]
+        Resource = var.ebs_resource_arns
+      }] : [],
+      var.enable_efs_restore && length(var.efs_resource_arns) > 0 ? [{
         Sid    = "EFSRestore"
         Effect = "Allow"
         Action = [
           "elasticfilesystem:CreateFilesystem",
-          "elasticfilesystem:DescribeFilesystems",
           "elasticfilesystem:CreateMountTarget",
-          "elasticfilesystem:DescribeMountTargets",
           "elasticfilesystem:TagResource",
           "elasticfilesystem:Restore",
         ]
-        Resource = ["*"]
+        Resource = var.efs_resource_arns
       }] : [],
-      var.enable_fsx_restore ? [{
+      var.enable_fsx_restore && length(var.fsx_resource_arns) > 0 ? [{
         Sid    = "FSxRestore"
         Effect = "Allow"
         Action = [
           "fsx:CreateFileSystemFromBackup",
-          "fsx:DescribeFileSystems",
-          "fsx:DescribeBackups",
           "fsx:TagResource",
+        ]
+        Resource = var.fsx_resource_arns
+      }] : [],
+      var.enable_redshift_restore && length(var.redshift_resource_arns) > 0 ? [{
+        Sid    = "RedshiftRestore"
+        Effect = "Allow"
+        Action = [
+          "redshift:CreateCluster",
+          "redshift:CreateClusterSnapshot",
+          "redshift:CreateTags",
+          "redshift:RestoreFromClusterSnapshot",
+        ]
+        Resource = var.redshift_resource_arns
+      }] : [],
+      (var.enable_rds_restore || var.enable_dynamodb_restore || var.enable_ebs_restore || var.enable_efs_restore || var.enable_fsx_restore || var.enable_redshift_restore) ? [{
+        Sid    = "RestoreDescribeReadOnly"
+        Effect = "Allow"
+        Action = [
+          "dynamodb:DescribeBackup",
+          "dynamodb:DescribeContinuousBackups",
+          "dynamodb:DescribeTable",
+          "ec2:DescribeSnapshots",
+          "ec2:DescribeVolumes",
+          "elasticfilesystem:DescribeFilesystems",
+          "elasticfilesystem:DescribeMountTargets",
+          "fsx:DescribeBackups",
+          "fsx:DescribeFileSystems",
+          "rds:DescribeDBClusters",
+          "rds:DescribeDBClusterSnapshots",
+          "rds:DescribeDBInstances",
+          "rds:DescribeDBSnapshots",
+          "redshift:DescribeClusters",
+          "redshift:DescribeClusterSnapshots",
         ]
         Resource = ["*"]
       }] : [],
@@ -148,15 +196,29 @@ resource "aws_iam_role_policy" "restore_extended" {
           "ec2:DescribeAvailabilityZones",
           "ec2:DescribeAccountAttributes",
           "ec2:DescribeInternetGateways",
-          "kms:DescribeKey",
-          "kms:GenerateDataKey",
-          "kms:Decrypt",
-          "kms:CreateGrant",
-          "iam:PassRole",
           "tag:GetResources",
         ]
         Resource = ["*"]
-      }]
+      }],
+      length(var.kms_key_arns) > 0 ? [{
+        Sid    = "RestoreKms"
+        Effect = "Allow"
+        Action = [
+          "kms:CreateGrant",
+          "kms:Decrypt",
+          "kms:DescribeKey",
+          "kms:GenerateDataKey",
+        ]
+        Resource = var.kms_key_arns
+      }] : [],
+      length(var.pass_role_arns) > 0 ? [{
+        Sid    = "RestorePassRole"
+        Effect = "Allow"
+        Action = [
+          "iam:PassRole",
+        ]
+        Resource = var.pass_role_arns
+      }] : []
     )
   })
 }
@@ -173,16 +235,16 @@ resource "aws_sns_topic" "restore" {
 }
 
 resource "aws_sns_topic_policy" "restore" {
-  count  = var.create_sns_topic && var.sns_topic_arn == null ? 1 : 0
-  arn    = aws_sns_topic.restore[0].arn
+  count = var.create_sns_topic && var.sns_topic_arn == null ? 1 : 0
+  arn   = aws_sns_topic.restore[0].arn
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Sid    = "AllowBackupPublish"
-      Effect = "Allow"
+      Sid       = "AllowBackupPublish"
+      Effect    = "Allow"
       Principal = { Service = "backup.amazonaws.com" }
-      Action   = "sns:Publish"
-      Resource = aws_sns_topic.restore[0].arn
+      Action    = "sns:Publish"
+      Resource  = aws_sns_topic.restore[0].arn
     }]
   })
 }
@@ -354,7 +416,7 @@ resource "aws_cloudwatch_event_rule" "restore_events" {
   description = "Capture AWS Backup restore events for ${var.name} (${var.environment}) → CloudWatch Logs"
 
   event_pattern = jsonencode({
-    source      = ["aws.backup"]
+    source = ["aws.backup"]
     detail-type = [
       "Restore Job State Change",
       "Recovery Point State Change",
@@ -483,14 +545,20 @@ resource "aws_cloudwatch_dashboard" "restore" {
     widgets = [
       {
         type   = "text"
-        x = 0; y = 0; width = 24; height = 1
+        x      = 0
+        y      = 0
+        width  = 24
+        height = 1
         properties = {
           markdown = "# AWS Backup Restore Dashboard — ${var.name} (${var.environment})"
         }
       },
       {
         type   = "metric"
-        x = 0; y = 1; width = 8; height = 6
+        x      = 0
+        y      = 1
+        width  = 8
+        height = 6
         properties = {
           title   = "Restore Jobs Status (24h)"
           view    = "timeSeries"
@@ -499,14 +567,17 @@ resource "aws_cloudwatch_dashboard" "restore" {
           stat    = "Sum"
           metrics = [
             ["AWS/Backup", "NumberOfRestoreJobsCompleted", { label = "Completed", color = "#2ca02c" }],
-            ["AWS/Backup", "NumberOfRestoreJobsFailed",    { label = "Failed",    color = "#d62728" }],
-            ["AWS/Backup", "NumberOfRestoreJobsExpired",   { label = "Expired",   color = "#ff7f0e" }],
+            ["AWS/Backup", "NumberOfRestoreJobsFailed", { label = "Failed", color = "#d62728" }],
+            ["AWS/Backup", "NumberOfRestoreJobsExpired", { label = "Expired", color = "#ff7f0e" }],
           ]
         }
       },
       {
         type   = "metric"
-        x = 8; y = 1; width = 8; height = 6
+        x      = 8
+        y      = 1
+        width  = 8
+        height = 6
         properties = {
           title   = "Restore Testing Jobs (24h)"
           view    = "timeSeries"
@@ -515,13 +586,16 @@ resource "aws_cloudwatch_dashboard" "restore" {
           stat    = "Sum"
           metrics = [
             ["AWS/Backup", "NumberOfRestoreTestingJobsCompleted", { label = "Test Completed", color = "#2ca02c" }],
-            ["AWS/Backup", "NumberOfRestoreTestingJobsFailed",    { label = "Test Failed",    color = "#d62728" }],
+            ["AWS/Backup", "NumberOfRestoreTestingJobsFailed", { label = "Test Failed", color = "#d62728" }],
           ]
         }
       },
       {
         type   = "metric"
-        x = 16; y = 1; width = 8; height = 6
+        x      = 16
+        y      = 1
+        width  = 8
+        height = 6
         properties = {
           title   = "Restore Alarms"
           view    = "timeSeries"
@@ -529,16 +603,19 @@ resource "aws_cloudwatch_dashboard" "restore" {
           period  = 3600
           stat    = "Maximum"
           metrics = var.create_cloudwatch_alarms ? [
-            ["AWS/Backup", "NumberOfRestoreJobsFailed",  { label = "Failed Jobs" }],
+            ["AWS/Backup", "NumberOfRestoreJobsFailed", { label = "Failed Jobs" }],
             ["AWS/Backup", "NumberOfRestoreJobsExpired", { label = "Expired Jobs" }],
           ] : []
         }
       },
       {
         type   = "alarm"
-        x = 0; y = 7; width = 12; height = 4
+        x      = 0
+        y      = 7
+        width  = 12
+        height = 4
         properties = {
-          title  = "Active Restore Alarms"
+          title = "Active Restore Alarms"
           alarms = var.create_cloudwatch_alarms ? [
             aws_cloudwatch_metric_alarm.restore_job_failed[0].arn,
             aws_cloudwatch_metric_alarm.restore_job_expired[0].arn,
@@ -547,11 +624,14 @@ resource "aws_cloudwatch_dashboard" "restore" {
       },
       {
         type   = "log"
-        x = 0; y = 11; width = 24; height = 8
+        x      = 0
+        y      = 11
+        width  = 24
+        height = 8
         properties = {
-          title   = "Recent Restore Events (Last 24h)"
-          query   = var.enable_cloudwatch_logs ? "SOURCE '/aws/restore/${local.prefix}/events' | fields @timestamp, detail.status, detail.resourceType, detail.restoreJobId | sort @timestamp desc | limit 50" : "# Enable enable_cloudwatch_logs = true to see restore events here"
-          view    = "table"
+          title = "Recent Restore Events (Last 24h)"
+          query = var.enable_cloudwatch_logs ? "SOURCE '/aws/restore/${local.prefix}/events' | fields @timestamp, detail.status, detail.resourceType, detail.restoreJobId | sort @timestamp desc | limit 50" : "# Enable enable_cloudwatch_logs = true to see restore events here"
+          view  = "table"
         }
       }
     ]

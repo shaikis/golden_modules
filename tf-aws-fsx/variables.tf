@@ -58,7 +58,9 @@ variable "windows" {
     self_managed_ad = optional(object({
       domain_name             = string
       username                = string
-      password                = string
+      password                = optional(string, null)
+      password_secret_id      = optional(string, null)
+      password_secret_key     = optional(string, "password")
       dns_ips                 = list(string)
       organizational_unit     = optional(string, null)
       file_system_admin_group = optional(string, "Domain Admins")
@@ -112,20 +114,26 @@ variable "ontap" {
     automatic_backup_retention_days   = optional(number, 7)
     daily_automatic_backup_start_time = optional(string, "02:00")
     fsx_admin_password                = optional(string, null)
+    fsx_admin_password_secret_id      = optional(string, null)
+    fsx_admin_password_secret_key     = optional(string, "password")
     route_table_ids                   = optional(list(string), [])
     ha_pairs                          = optional(number, 1)
 
     # Storage Virtual Machines
     svms = optional(map(object({
-      name                       = string
-      root_volume_security_style = optional(string, "UNIX") # UNIX | NTFS | MIXED
-      svm_admin_password         = optional(string, null)
+      name                          = string
+      root_volume_security_style    = optional(string, "UNIX") # UNIX | NTFS | MIXED
+      svm_admin_password            = optional(string, null)
+      svm_admin_password_secret_id  = optional(string, null)
+      svm_admin_password_secret_key = optional(string, "password")
 
       # Active Directory (for NTFS/MIXED volumes)
       active_directory = optional(object({
         dns_ips                                = list(string)
         domain_name                            = string
-        password                               = string
+        password                               = optional(string, null)
+        password_secret_id                     = optional(string, null)
+        password_secret_key                    = optional(string, "password")
         username                               = string
         file_system_admin_group                = optional(string, "Domain Admins")
         organizational_unit_distinguished_name = optional(string, null)
@@ -150,6 +158,26 @@ variable "ontap" {
     })), {})
   })
   default = null
+
+  validation {
+    condition = var.ontap == null || (
+      var.ontap.fsx_admin_password != null || var.ontap.fsx_admin_password_secret_id != null
+    )
+    error_message = "When ontap is configured, set either ontap.fsx_admin_password or ontap.fsx_admin_password_secret_id."
+  }
+
+  validation {
+    condition = var.ontap == null || alltrue([
+      for svm in values(var.ontap.svms) :
+      (svm.svm_admin_password != null || svm.svm_admin_password_secret_id != null) &&
+      (
+        svm.active_directory == null ||
+        try(svm.active_directory.password, null) != null ||
+        try(svm.active_directory.password_secret_id, null) != null
+      )
+    ])
+    error_message = "Each ONTAP SVM must set svm_admin_password or svm_admin_password_secret_id. If active_directory is configured, set its password or password_secret_id."
+  }
 }
 
 # ===========================================================================
@@ -207,6 +235,104 @@ variable "ontap_cross_region_backup_retention_days" {
   description = "Number of days to retain ONTAP backups in the destination region"
   type        = number
   default     = 30
+}
+
+# ===========================================================================
+# FSx ONTAP — SnapMirror Cross-Region Replication (ONTAP-native)
+#
+# Three replication approaches, each independently toggleable:
+#
+#   Approach 1 — AWS Backup cross-region copy (already above)
+#     RPO: hours (backup schedule). RTO: hours (restore from backup).
+#     No extra provider needed.
+#
+#   Approach 2 — SnapMirror Async via NetApp ONTAP Terraform provider
+#     RPO: 5–60 min. RTO: minutes (break mirror → promote destination SVM).
+#     Requires: NetApp/netapp-ontap provider + VPC network access to ONTAP mgmt.
+#     Production DR standard for FSx ONTAP.
+#
+#   Approach 3 — SnapMirror Sync (zero RPO)
+#     RPO: ~0 (synchronous I/O). RTO: minutes. Higher cost.
+#     Requires SnapMirror policy = "sync-mirror" or "strictSync".
+#
+#   Approach 4 — SVM DR (entire SVM replication)
+#     Replicates SVM configuration (CIFS shares, NFS exports, LUNs) AND data.
+#     Best for complete failover with identical SVM structure.
+# ===========================================================================
+
+variable "enable_ontap_snapmirror" {
+  description = <<-EOT
+    Enable SnapMirror replication for FSx ONTAP volumes (approaches 2 & 3).
+    Requires the NetApp ONTAP Terraform provider and network access to the
+    ONTAP management endpoint from your Terraform execution environment.
+  EOT
+  type        = bool
+  default     = false
+}
+
+variable "ontap_snapmirror" {
+  description = <<-EOT
+    SnapMirror cross-region replication configuration.
+    Only used when enable_ontap_snapmirror = true.
+
+    source_management_ip    — Management IP/hostname of the source FSx ONTAP cluster
+                              (found in FSx console > Administration > Endpoints)
+    source_admin_password   — fsxadmin password for the source cluster
+    destination_management_ip — Management IP/hostname of the destination cluster
+    destination_admin_password — fsxadmin password for the destination cluster
+
+    replication_mode        — async | sync | strictSync
+      async      — RPO ~5-60 min; low cost; recommended for cross-region
+      sync       — RPO ~0 (synchronous); higher cost; same region recommended
+      strictSync — RPO = 0; I/O fails if replication link breaks
+
+    schedule                — SnapMirror schedule (async only):
+                              e.g. "hourly", "daily", "6hourly"
+                              or cron format "0 * * * *"
+
+    volume_relationships    — map of volume replication pairs:
+      source_svm_key        — key from ontap.svms for the source SVM
+      source_volume_key     — key from that SVM's volumes map
+      destination_svm_name  — name of the destination SVM (must exist on DR cluster)
+      destination_volume_name — name for the DP volume on the destination
+      policy_type           — async-mirror | sync-mirror | MirrorAllSnapshots |
+                              MirrorAndVault | Vault
+      throttle_kb_s         — replication bandwidth throttle in KB/s (0 = unlimited)
+
+    svm_dr_relationships    — SVM-level DR (replicates entire SVM config + data):
+      source_svm_key        — key from ontap.svms
+      destination_svm_name  — destination SVM name
+  EOT
+  type = object({
+    source_management_ip                  = string
+    source_admin_password                 = optional(string, null)
+    source_admin_password_secret_id       = optional(string, null)
+    source_admin_password_secret_key      = optional(string, "password")
+    destination_management_ip             = string
+    destination_admin_password            = optional(string, null)
+    destination_admin_password_secret_id  = optional(string, null)
+    destination_admin_password_secret_key = optional(string, "password")
+    source_https_port                     = optional(number, 443)
+    destination_https_port                = optional(number, 443)
+    replication_mode                      = optional(string, "async")
+    schedule                              = optional(string, "hourly")
+
+    volume_relationships = optional(map(object({
+      source_svm_key          = string
+      source_volume_key       = string
+      destination_svm_name    = string
+      destination_volume_name = string
+      policy_type             = optional(string, "async-mirror")
+      throttle_kb_s           = optional(number, 0)
+    })), {})
+
+    svm_dr_relationships = optional(map(object({
+      source_svm_key       = string
+      destination_svm_name = string
+    })), {})
+  })
+  default   = null
+  sensitive = true # contains ONTAP admin passwords
 }
 
 # ===========================================================================

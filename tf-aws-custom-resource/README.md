@@ -322,3 +322,8 @@ tf-aws-custom-resource/
 | Terraform | >= 1.3.0 |
 | AWS Provider | >= 5.0 |
 | Python (for Lambda) | 3.12 (configurable via `var.runtime`) |
+
+## Versioning
+
+Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.
+

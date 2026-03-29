@@ -79,8 +79,8 @@ resource "aws_dynamodb_table" "this" {
 
   # Server-side encryption
   server_side_encryption {
-    enabled           = true
-    kms_master_key_id = each.value.kms_key_arn
+    enabled     = true
+    kms_key_arn = each.value.kms_key_arn
   }
 
   # Global Secondary Indexes

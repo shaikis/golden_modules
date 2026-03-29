@@ -57,6 +57,26 @@ output "agent_arns" {
   value       = { for k, v in aws_datasync_agent.this : k => v.arn }
 }
 
+output "agent_instance_ids" {
+  description = "EC2 instance IDs of auto-activated DataSync agents (empty when auto_activate_agents = false)."
+  value       = { for k, v in aws_instance.agent : k => v.id }
+}
+
+output "agent_private_ips" {
+  description = "Private IPs of auto-activated agent EC2 instances."
+  value       = { for k, v in aws_instance.agent : k => v.private_ip }
+}
+
+output "agent_arn_ssm_paths" {
+  description = "SSM Parameter Store paths where auto-activated agent ARNs are persisted."
+  value       = { for k in keys(local.auto_agents) : k => "/datasync/${var.name_prefix}${k}/arn" }
+}
+
+output "activation_lambda_arns" {
+  description = "ARNs of the per-agent activation Lambda functions."
+  value       = { for k, v in aws_lambda_function.activation : k => v.arn }
+}
+
 output "datasync_role_arn" {
   description = "ARN of the DataSync IAM role (null when create_iam_role = false and role_arn not set)."
   value       = local.effective_role_arn

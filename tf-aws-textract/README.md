@@ -70,6 +70,9 @@ Terraform module for provisioning the surrounding infrastructure required to use
 
 ---
 
+## Versioning
+
+Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.
 ## Usage
 
 ### Minimal — sync calls only (IAM role only)
@@ -248,3 +251,4 @@ module "textract" {
 - **Async job result retrieval:** After receiving an SNS/SQS notification, call `GetDocumentTextDetection` or `GetDocumentAnalysis` with the `JobId` from the notification payload.
 - **Service role ARN:** Pass `iam_service_role_arn` output as the `RoleArn` in the `NotificationChannel` parameter of `StartDocumentTextDetection` / `StartDocumentAnalysis` API calls.
 - **S3 permissions:** This module grants the IAM role `s3:GetObject` on input buckets. Ensure the S3 bucket policy also allows Textract to read (add `textract.amazonaws.com` as a principal if using bucket policies).
+

@@ -3,32 +3,38 @@
 # ---------------------------------------------------------------------------
 variable "source_bucket_name" {
   description = "Name of the source S3 bucket to create."
-  type = string
+  type        = string
 }
+
 variable "name_prefix" {
   type    = string
   default = ""
 }
+
 variable "environment" {
   type    = string
   default = "dev"
 }
+
 variable "project" {
   type    = string
   default = ""
 }
+
 variable "owner" {
   type    = string
   default = ""
 }
+
 variable "cost_center" {
   type    = string
   default = ""
 }
+
 variable "tags" {
   type    = map(string)
-  default = {
-} }
+  default = {}
+}
 
 # ---------------------------------------------------------------------------
 # Source bucket

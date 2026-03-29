@@ -1,9 +1,32 @@
-provider "aws" { region = var.aws_region }
+terraform {
+  required_version = ">= 1.5.0"
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 5.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = var.aws_region
+}
 
 module "kms" {
   source      = "../../../tf-aws-kms"
-  name        = "${var.name}-asg"
-  environment = var.environment
+  name_prefix = var.name
+  tags = {
+    Environment = var.environment
+    Project     = var.project
+    Owner       = var.owner
+    CostCenter  = var.cost_center
+  }
+
+  keys = {
+    asg = {
+      description = "KMS key for ${var.name} Windows ASG instances"
+    }
+  }
 }
 
 module "asg_windows" {
@@ -16,7 +39,7 @@ module "asg_windows" {
 
   os_type                   = "windows"
   instance_type             = var.instance_type
-  kms_key_arn               = module.kms.key_arn
+  kms_key_arn               = module.kms.key_arns["asg"]
   vpc_zone_identifier       = var.subnet_ids
   security_group_ids        = var.security_group_ids
   iam_instance_profile_name = var.iam_instance_profile_name
@@ -44,5 +67,6 @@ module "asg_windows" {
   tags              = var.tags
 }
 
-output "asg_name" { value = module.asg_windows.asg_name }
-output "hostname_prefix" { value = module.asg_windows.hostname_prefix }
+output "hostname_prefix" {
+  value = module.asg_windows.hostname_prefix
+}

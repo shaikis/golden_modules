@@ -12,6 +12,9 @@ Terraform module for AWS ECS clusters, task definitions, and services.
 - `ignore_changes = [desired_count, task_definition]` — Auto Scaling and CI/CD manage these
 - `prevent_destroy` on cluster
 
+## Versioning
+
+Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.
 ## Usage
 
 ```hcl
@@ -50,3 +53,4 @@ module "ecs" {
   }
 }
 ```
+

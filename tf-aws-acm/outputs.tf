@@ -27,3 +27,28 @@ output "validation_record_fqdns" {
   description = "FQDNs of the Route 53 DNS validation records created."
   value       = [for record in aws_route53_record.validation : record.fqdn]
 }
+
+output "certificate_not_after" {
+  description = "Expiry date of the certificate (RFC3339). Use with CloudWatch to alert before expiry."
+  value       = aws_acm_certificate.this.not_after
+}
+
+output "certificate_not_before" {
+  description = "Issuance date of the certificate (RFC3339)."
+  value       = aws_acm_certificate.this.not_before
+}
+
+output "certificate_type" {
+  description = "Certificate type: AMAZON_ISSUED or PRIVATE."
+  value       = aws_acm_certificate.this.type
+}
+
+output "certificate_key_algorithm" {
+  description = "Key algorithm used: RSA_2048, EC_prime256v1, etc."
+  value       = aws_acm_certificate.this.key_algorithm
+}
+
+output "renewed_certificate_arn" {
+  description = "ARN of the renewed certificate when early_renewal_duration is set and renewal occurs."
+  value       = aws_acm_certificate.this.renewed_certificate_arn
+}

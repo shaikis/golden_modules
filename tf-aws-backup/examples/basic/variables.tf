@@ -28,8 +28,8 @@ variable "cost_center" {
 }
 variable "tags" {
   type    = map(string)
-  default = {
-} }
+  default = {}
+}
 
 variable "create_iam_role" {
   type    = bool

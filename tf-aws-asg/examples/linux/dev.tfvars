@@ -6,9 +6,9 @@ project     = "platform"
 owner       = "app-team"
 cost_center = "CC-200"
 
-instance_type   = "t3.medium"
-subnet_ids      = ["subnet-0dev1", "subnet-0dev2"]   # shared lower-env subnets
-security_group_ids      = ["sg-0app"]
+instance_type             = "t3.medium"
+subnet_ids                = ["subnet-0dev1", "subnet-0dev2"] # shared lower-env subnets
+security_group_ids        = ["sg-0app"]
 iam_instance_profile_name = "ec2-ssm-instance-profile"
 
 min_size         = 1
@@ -36,4 +36,7 @@ scheduled_actions = {
   }
 }
 
-tags = { Team = "app-team"; CostSaving = "scheduled" }
+tags = {
+  Team       = "app-team"
+  CostSaving = "scheduled"
+}

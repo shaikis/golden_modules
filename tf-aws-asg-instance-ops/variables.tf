@@ -20,7 +20,8 @@ variable "cost_center" {
 variable "tags" {
   type    = map(string)
   default = {
-} }
+} 
+}
 
 # ===========================================================================
 # SCALE-IN PROTECTION (per instance)

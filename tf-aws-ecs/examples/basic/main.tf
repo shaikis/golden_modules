@@ -14,7 +14,10 @@ module "ecs" {
         name      = "web"
         image     = var.container_image
         essential = true
-        portMappings = [{ containerPort = var.container_port; protocol = "tcp" }]
+        portMappings = [{
+          containerPort = var.container_port
+          protocol      = "tcp"
+        }]
         logConfiguration = {
           logDriver = "awslogs"
           options = {

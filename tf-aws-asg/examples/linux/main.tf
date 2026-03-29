@@ -2,8 +2,19 @@ provider "aws" { region = var.aws_region }
 
 module "kms" {
   source      = "../../../tf-aws-kms"
-  name        = "${var.name}-asg"
-  environment = var.environment
+  name_prefix = var.name
+  tags = {
+    Environment = var.environment
+    Project     = var.project
+    Owner       = var.owner
+    CostCenter  = var.cost_center
+  }
+
+  keys = {
+    asg = {
+      description = "KMS key for ${var.name} ASG instances"
+    }
+  }
 }
 
 module "asg_linux" {
@@ -16,7 +27,7 @@ module "asg_linux" {
 
   os_type                   = "linux"
   instance_type             = var.instance_type
-  kms_key_arn               = module.kms.key_arn
+  kms_key_arn               = module.kms.key_arns["asg"]
   vpc_zone_identifier       = var.subnet_ids
   security_group_ids        = var.security_group_ids
   iam_instance_profile_name = var.iam_instance_profile_name

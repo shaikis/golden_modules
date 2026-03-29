@@ -28,7 +28,7 @@ ontap = {
   preferred_subnet_id           = "subnet-0dev1"
   throughput_capacity           = 128
   automatic_backup_retention_days = 3
-  fsx_admin_password            = "CHANGE_ME_DEVONLY"
+  fsx_admin_password_secret_id  = "dev/fsx/admin"
 
   svms = {
     app = {
@@ -37,7 +37,7 @@ ontap = {
       active_directory = {
         dns_ips     = ["10.0.0.10", "10.0.0.11"]
         domain_name = "corp.internal"
-        password    = "CHANGE_ME"
+        password_secret_id = "dev/fsx/domain-join"
         username    = "svc-fsx"
       }
       volumes = {

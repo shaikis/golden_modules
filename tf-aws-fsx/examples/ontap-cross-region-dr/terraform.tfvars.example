@@ -1,0 +1,59 @@
+# =============================================================================
+# ONTAP Cross-Region DR — example variable values
+#
+# TWO-PHASE APPLY:
+#
+#   Phase 1: Create FSx ONTAP clusters (leave SnapMirror IPs empty)
+#   ──────────────────────────────────────────────────────────────
+#   terraform apply -target=module.kms_primary \
+#                   -target=module.kms_dr \
+#                   -target=module.fsx_primary \
+#                   -target=module.fsx_dr
+#
+#   After Phase 1, retrieve management IPs from FSx console:
+#     FSx → File system → Administration → Endpoints → Management
+#
+#   Phase 2: Configure SnapMirror (fill in the management IPs below)
+#   ──────────────────────────────────────────────────────────────
+#   terraform apply
+#
+# NOTE: Terraform must run from a host with HTTPS (port 443) access to both
+#       ONTAP management IPs. Options: EC2 in the VPC, AWS CodeBuild, or VPN.
+# =============================================================================
+
+name        = "myapp"
+environment = "prod"
+
+primary_region = "us-east-1"
+dr_region      = "us-west-2"
+
+# ── Primary region ────────────────────────────────────────────────────────────
+primary_subnet_ids         = ["subnet-aaaa1111", "subnet-bbbb2222"]
+primary_security_group_ids = ["sg-primary1111"]
+
+# ── DR region ─────────────────────────────────────────────────────────────────
+dr_subnet_ids         = ["subnet-cccc3333", "subnet-dddd4444"]
+dr_security_group_ids = ["sg-dr2222"]
+
+# ── Cluster sizing ────────────────────────────────────────────────────────────
+storage_capacity_gb     = 1024
+throughput_capacity_mbs = 512
+
+# ── Secrets Manager passwords (no plaintext passwords in tfvars) ─────────────
+# Secret string may be either:
+#   1. raw plaintext password, or
+#   2. JSON like {"password":"..."}
+fsx_admin_password_secret_id = "prod/fsx/admin"
+svm_admin_password_secret_id = "prod/fsx/svm-admin"
+
+# ── Volume sizes ──────────────────────────────────────────────────────────────
+data_volume_size_gb = 200
+logs_volume_size_gb = 50
+
+# ── SnapMirror endpoints (fill in after Phase 1) ─────────────────────────────
+# primary_ontap_management_ip = "198.19.255.20"   # example — update after apply
+# dr_ontap_management_ip      = "198.19.255.21"   # example — update after apply
+
+# ── DNS failover ──────────────────────────────────────────────────────────────
+route53_zone_id = "Z1234567890ABCD"
+domain          = "internal.example.com"

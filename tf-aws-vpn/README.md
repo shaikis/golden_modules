@@ -16,6 +16,9 @@ Terraform module for **Site-to-Site VPN** (Customer Gateways + VPN Connections) 
 | Lifecycle safety | `ignore_changes` on pre-shared keys, `CreatedDate` tag |
 | Full tagging | Name, Environment, Project, Owner, CostCenter, ManagedBy |
 
+## Versioning
+
+Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.
 ## Usage
 
 ### Switching environments
@@ -126,3 +129,4 @@ module "vpn" {
 | `client_vpn_endpoint_id` | Client VPN endpoint ID |
 | `client_vpn_dns_name` | Client VPN DNS name |
 | `client_vpn_log_group_name` | CloudWatch log group name |
+

@@ -6,9 +6,9 @@ project     = "platform"
 owner       = "windows-team"
 cost_center = "CC-300"
 
-instance_type   = "t3.large"
-root_volume_size = 100
-subnet_ids      = ["subnet-0dev1", "subnet-0dev2"]   # shared lower-env subnets
+instance_type             = "t3.large"
+root_volume_size          = 100
+subnet_ids                = ["subnet-0dev1", "subnet-0dev2"] # shared lower-env subnets
 security_group_ids        = ["sg-0win"]
 iam_instance_profile_name = "ec2-ssm-windows-profile"
 
@@ -48,4 +48,7 @@ scheduled_actions = {
   }
 }
 
-tags = { Team = "windows-team"; OS = "windows" }
+tags = {
+  Team = "windows-team"
+  OS   = "windows"
+}

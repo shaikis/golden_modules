@@ -2,7 +2,8 @@
 # RDS Instance
 # ---------------------------------------------------------------------------
 resource "aws_db_instance" "this" {
-  identifier = local.name
+  identifier        = var.identifier_prefix != null ? null : local.name
+  identifier_prefix = var.identifier_prefix
 
   # Engine
   engine                      = var.engine
@@ -14,8 +15,12 @@ resource "aws_db_instance" "this" {
   apply_immediately           = var.apply_immediately
   ca_cert_identifier          = var.ca_cert_identifier
   character_set_name          = var.character_set_name
+  nchar_character_set_name    = var.nchar_character_set_name
   timezone                    = var.timezone
   network_type                = var.network_type
+
+  # RDS Custom
+  custom_iam_instance_profile = var.custom_iam_instance_profile
 
   # Database
   db_name                       = var.db_name
@@ -25,14 +30,23 @@ resource "aws_db_instance" "this" {
   master_user_secret_kms_key_id = var.manage_master_user_password ? var.master_user_secret_kms_key_id : null
   port                          = var.port
 
+  # IAM Authentication (MySQL, PostgreSQL)
+  iam_database_authentication_enabled = var.iam_database_authentication_enabled
+
   # Replica
   replicate_source_db = var.replicate_source_db
+  replica_mode        = var.replica_mode
+
+  # Snapshot / PITR restore (mutually exclusive — set only one)
+  snapshot_identifier = var.snapshot_identifier
 
   # Storage
-  allocated_storage     = var.allocated_storage
+  allocated_storage     = var.snapshot_identifier != null || var.restore_to_point_in_time != null ? null : var.allocated_storage
   max_allocated_storage = var.max_allocated_storage > 0 ? var.max_allocated_storage : null
   storage_type          = var.storage_type
   iops                  = var.iops
+  storage_throughput    = var.storage_throughput
+  dedicated_log_volume  = var.dedicated_log_volume
   storage_encrypted     = var.storage_encrypted
   kms_key_id            = var.kms_key_id
 
@@ -63,16 +77,58 @@ resource "aws_db_instance" "this" {
   performance_insights_kms_key_id       = var.performance_insights_enabled ? var.performance_insights_kms_key_id : null
   enabled_cloudwatch_logs_exports       = var.enabled_cloudwatch_logs_exports
 
-  # Parameters
+  # Parameters & Options
   parameter_group_name = var.create_parameter_group ? aws_db_parameter_group.this[0].name : var.parameter_group_name
-  option_group_name    = var.option_group_name
+  option_group_name    = var.create_option_group ? aws_db_option_group.this[0].name : var.option_group_name
+
+  # Active Directory / Domain Join (SQL Server Windows Authentication)
+  domain                 = var.domain
+  domain_fqdn            = var.domain_fqdn
+  domain_dns_ips         = var.domain_dns_ips
+  domain_ou              = var.domain_ou
+  domain_auth_secret_arn = var.domain_auth_secret_arn
+  domain_iam_role_name = (var.domain != null || var.domain_fqdn != null) ? (
+    var.create_domain_iam_role
+    ? aws_iam_role.domain[0].name
+    : var.domain_iam_role_name
+  ) : null
+
+  # Blue/Green deployment (zero-downtime upgrades)
+  dynamic "blue_green_update" {
+    for_each = var.blue_green_update != null ? [var.blue_green_update] : []
+    content {
+      enabled = blue_green_update.value.enabled
+    }
+  }
+
+  # S3 Import — MySQL bulk load from Percona XtraBackup
+  dynamic "s3_import" {
+    for_each = var.s3_import != null ? [var.s3_import] : []
+    content {
+      bucket_name           = s3_import.value.bucket_name
+      bucket_prefix         = s3_import.value.bucket_prefix
+      ingestion_role        = s3_import.value.ingestion_role
+      source_engine         = s3_import.value.source_engine
+      source_engine_version = s3_import.value.source_engine_version
+    }
+  }
+
+  # Point-in-Time Restore
+  dynamic "restore_to_point_in_time" {
+    for_each = var.restore_to_point_in_time != null ? [var.restore_to_point_in_time] : []
+    content {
+      restore_time                             = restore_to_point_in_time.value.restore_time
+      source_db_instance_identifier            = restore_to_point_in_time.value.source_db_instance_identifier
+      source_db_instance_automated_backups_arn = restore_to_point_in_time.value.source_db_instance_automated_backups_arn
+      source_dbi_resource_id                   = restore_to_point_in_time.value.source_dbi_resource_id
+      use_latest_restorable_time               = restore_to_point_in_time.value.use_latest_restorable_time
+    }
+  }
 
   tags = local.tags
 
   lifecycle {
-    # Prevent accidental deletion
     prevent_destroy = true
-    # Ignore password changes (managed externally / by Secrets Manager)
-    ignore_changes = [password, tags["CreatedDate"]]
+    ignore_changes  = [password, tags["CreatedDate"]]
   }
 }
