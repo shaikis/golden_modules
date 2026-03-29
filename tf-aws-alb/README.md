@@ -9,6 +9,70 @@ Despite the module name, this module is not limited to ALB. It supports:
 
 Classic Load Balancer (`aws_elb`) is not covered by this module.
 
+## Architecture
+
+```mermaid
+graph TB
+    subgraph Internet["Internet / Clients"]
+        CLIENT[Client Requests]
+    end
+
+    subgraph LB["Load Balancer Layer"]
+        ALB[Application LB\nHTTP/HTTPS L7]
+        NLB[Network LB\nTCP/TLS/UDP L4]
+        GWLB[Gateway LB\nAppliance Insertion]
+    end
+
+    subgraph Listeners["Listeners"]
+        HTTP[HTTP :80\nRedirect to HTTPS]
+        HTTPS[HTTPS :443\nForward / Fixed-Response]
+        TCP[TCP :443]
+    end
+
+    subgraph Rules["Listener Rules"]
+        RULE1[Path-based /api/*]
+        RULE2[Host-based app.example.com]
+        RULE3[Weighted Forward]
+    end
+
+    subgraph TG["Target Groups"]
+        TG1[IP Targets\nECS / EKS pods]
+        TG2[Instance Targets\nEC2 / ASG]
+        TG3[Lambda Targets]
+        TG4[ALB Targets]
+    end
+
+    subgraph Security["Security & Observability"]
+        SG[Managed Security Group]
+        WAF[WAF Association]
+        LOGS[Access Logs S3\nConnection Logs]
+    end
+
+    CLIENT --> ALB
+    CLIENT --> NLB
+    ALB --> HTTP
+    ALB --> HTTPS
+    NLB --> TCP
+    HTTP --> HTTPS
+    HTTPS --> RULE1
+    HTTPS --> RULE2
+    HTTPS --> RULE3
+    RULE1 --> TG1
+    RULE2 --> TG2
+    RULE3 --> TG3
+    TCP --> TG4
+    ALB --- SG
+    ALB --- WAF
+    ALB --- LOGS
+
+    style Internet fill:#232F3E,color:#fff,stroke:#232F3E
+    style LB fill:#FF9900,color:#fff,stroke:#FF9900
+    style Listeners fill:#1A9C3E,color:#fff,stroke:#1A9C3E
+    style Rules fill:#8C4FFF,color:#fff,stroke:#8C4FFF
+    style TG fill:#DD344C,color:#fff,stroke:#DD344C
+    style Security fill:#232F3E,color:#fff,stroke:#232F3E
+```
+
 ## Features
 
 - ALB, NLB, and GWLB support through one module interface

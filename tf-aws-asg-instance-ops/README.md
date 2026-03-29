@@ -2,6 +2,43 @@
 
 Utility module for per-instance ASG operations. Use alongside `tf-aws-asg`.
 
+## Architecture
+
+```mermaid
+graph TB
+    subgraph ASG["Auto Scaling Group"]
+        I1[Instance i-0abc123\nIN_SERVICE]
+        I2[Instance i-0def456\nIN_SERVICE]
+        I3[Instance i-0ghi789\nIN_SERVICE]
+    end
+
+    subgraph OPS["Instance Operations via SSM Automation"]
+        PROTECT[Scale-in Protection\nprotected_instance_ids\nCannot be terminated by scale-in]
+        STANDBY[Standby Mode\nstandby_instance_ids\nDetached from LB and health checks]
+        DETACH[Detach\ndetach_instance_ids\nRemoved from ASG, still running]
+    end
+
+    subgraph LB["Load Balancer"]
+        TG[Target Group]
+    end
+
+    subgraph PATCH["Maintenance Workflow"]
+        SSM[SSM Session\nSSH / patch / debug]
+    end
+
+    I1 -->|protected| PROTECT
+    I2 -->|maintenance| STANDBY
+    I3 -->|remove| DETACH
+    PROTECT -.->|stays in LB| TG
+    STANDBY -.->|removed from LB during maintenance| TG
+    STANDBY --> SSM
+
+    style ASG fill:#FF9900,color:#fff,stroke:#FF9900
+    style OPS fill:#232F3E,color:#fff,stroke:#232F3E
+    style LB fill:#1A9C3E,color:#fff,stroke:#1A9C3E
+    style PATCH fill:#8C4FFF,color:#fff,stroke:#8C4FFF
+```
+
 ## Operations
 
 | Operation | Variable | Effect | Reversible? |

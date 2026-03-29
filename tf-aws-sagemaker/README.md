@@ -4,6 +4,75 @@ Production-grade Terraform module for Amazon SageMaker. Manages Studio domains, 
 
 ---
 
+## Architecture
+
+```mermaid
+graph TB
+    subgraph IAM["IAM Foundation"]
+        style IAM fill:#232F3E,color:#fff,stroke:#232F3E
+        ROLE["SageMaker Execution Role\naws_iam_role"]
+        KMS["KMS Key\n(BYO from tf-aws-kms)"]
+    end
+
+    subgraph Studio["Studio Domain (create_domains)"]
+        style Studio fill:#FF9900,color:#fff,stroke:#FF9900
+        DOM["SageMaker Domain\naws_sagemaker_domain"]
+        DOM_VPC["VPC / Subnet\nNetwork Isolation"]
+        DOM --> DOM_VPC
+    end
+
+    subgraph Notebooks["Notebook Instances (create_notebooks)"]
+        style Notebooks fill:#FF9900,color:#fff,stroke:#FF9900
+        NB["Notebook Instance\naws_sagemaker_notebook_instance\n(ml.t3.medium, ml.p3.2xlarge...)"]
+    end
+
+    subgraph Inference["Model Inference (create_models + create_endpoints)"]
+        style Inference fill:#1A9C3E,color:#fff,stroke:#1A9C3E
+        MDL["SageMaker Model\naws_sagemaker_model\n(ECR container image)"]
+        ECFG["Endpoint Config\naws_sagemaker_endpoint_configuration\n(production variants)"]
+        EP["Endpoint\naws_sagemaker_endpoint\n(real-time inference)"]
+        MDL --> ECFG --> EP
+    end
+
+    subgraph FeatureStore["Feature Store (create_feature_groups)"]
+        style FeatureStore fill:#8C4FFF,color:#fff,stroke:#8C4FFF
+        FG["Feature Group\naws_sagemaker_feature_group"]
+        ONLINE["Online Store\n(low-latency lookup)"]
+        OFFLINE["Offline Store\n(S3 — batch training)"]
+        FG --> ONLINE
+        FG --> OFFLINE
+    end
+
+    subgraph Pipelines["ML Pipelines (create_pipelines)"]
+        style Pipelines fill:#8C4FFF,color:#fff,stroke:#8C4FFF
+        PIPE["SageMaker Pipeline\naws_sagemaker_pipeline\n(training workflow)"]
+    end
+
+    subgraph Monitoring["CloudWatch Alarms (create_alarms)"]
+        style Monitoring fill:#DD344C,color:#fff,stroke:#DD344C
+        CW1["Invocation4XXErrors"]
+        CW2["Invocation5XXErrors"]
+        CW3["ModelLatency p99"]
+        SNS_AL["SNS Topic\n(alarm_sns_arns)"]
+        CW1 --> SNS_AL
+        CW2 --> SNS_AL
+        CW3 --> SNS_AL
+    end
+
+    ROLE --> DOM
+    ROLE --> NB
+    ROLE --> MDL
+    ROLE --> FG
+    ROLE --> PIPE
+    KMS --> NB
+    KMS --> ECFG
+    EP --> CW1
+    EP --> CW2
+    EP --> CW3
+```
+
+---
+
 ## Features
 
 - **Opt-in by default** — every resource family is gated behind a `create_X = false` flag; nothing is created unless explicitly enabled.
@@ -296,4 +365,3 @@ tf-aws-kms    ──► kms_key_arn ──►  tf-aws-sagemaker
 ## License
 
 Apache 2.0
-

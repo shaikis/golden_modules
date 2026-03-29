@@ -6,6 +6,76 @@ schema registry, security configurations, and IAM.
 
 ---
 
+## Architecture
+
+```mermaid
+graph TB
+    subgraph Sources["Data Sources"]
+        style Sources fill:#232F3E,color:#fff,stroke:#232F3E
+        S3SRC["S3 Buckets<br/>(Bronze / raw)"]
+        JDBC["JDBC / RDS<br/>(PostgreSQL, MySQL)"]
+        KAFKA["Kafka / MSK<br/>(streaming)"]
+    end
+
+    subgraph GlueCatalog["Glue Data Catalog"]
+        style GlueCatalog fill:#FF9900,color:#fff,stroke:#FF9900
+        DB["Catalog Databases<br/>(aws_glue_catalog_database)"]
+        TBL["Catalog Tables<br/>(aws_glue_catalog_table)"]
+        SCH["Schema Registry<br/>(Avro / JSON / Protobuf)"]
+        ENC["Catalog Encryption<br/>(SSE-KMS)"]
+        DB --> TBL
+    end
+
+    subgraph Crawlers["Crawlers"]
+        style Crawlers fill:#8C4FFF,color:#fff,stroke:#8C4FFF
+        CRW["Glue Crawlers<br/>(S3 / JDBC / Delta / Kafka)"]
+    end
+
+    subgraph Orchestration["Workflow Orchestration"]
+        style Orchestration fill:#1A9C3E,color:#fff,stroke:#1A9C3E
+        WF["Glue Workflow"]
+        TRG["Triggers<br/>(Scheduled / Conditional / On-Demand)"]
+        WF --> TRG
+    end
+
+    subgraph Jobs["ETL Jobs"]
+        style Jobs fill:#DD344C,color:#fff,stroke:#DD344C
+        BATCH["Batch ETL Jobs<br/>(glueetl — Spark)"]
+        STREAM["Streaming Jobs<br/>(gluestreaming)"]
+        PYSHELL["Python Shell Jobs<br/>(pythonshell)"]
+        RAY["Ray Jobs<br/>(glueray — ML)"]
+    end
+
+    subgraph IAMSec["IAM & Security"]
+        style IAMSec fill:#FF9900,color:#fff,stroke:#FF9900
+        ROLE["Glue Service IAM Role"]
+        SECCONF["Security Configuration<br/>(KMS for S3 / CWL / bookmarks)"]
+        CONN["Connections<br/>(JDBC / Kafka / Network)"]
+    end
+
+    subgraph Destinations["Data Lake Destinations"]
+        style Destinations fill:#232F3E,color:#fff,stroke:#232F3E
+        S3PROC["S3 Processed<br/>(Silver — Parquet)"]
+        S3ANA["S3 Analytics<br/>(Gold — aggregated)"]
+    end
+
+    S3SRC --> CRW
+    JDBC --> CRW
+    KAFKA --> STREAM
+    CRW --> DB
+    TRG --> BATCH
+    TRG --> PYSHELL
+    BATCH --> S3PROC
+    BATCH --> S3ANA
+    STREAM --> S3PROC
+    RAY --> S3ANA
+    ROLE --> Jobs
+    SECCONF --> Jobs
+    CONN --> Jobs
+```
+
+---
+
 ## Quick Start — minimal setup (one ETL job)
 
 ```hcl

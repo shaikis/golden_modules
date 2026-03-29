@@ -19,40 +19,47 @@ This module creates and configures the following AWS resources:
 
 ## Architecture Overview
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                          AWS Account                                │
-│                                                                     │
-│   ┌──────────────────────────────────────────────────────────────┐  │
-│   │                    AMP Workspace                             │  │
-│   │  alias: <name>    encryption: KMS (optional)                 │  │
-│   │                                                              │  │
-│   │   ┌─────────────────┐    ┌──────────────────────────────┐   │  │
-│   │   │  Alert Manager  │    │    Rule Group Namespaces      │   │  │
-│   │   │  (optional)     │    │    (map of YAML rules)        │   │  │
-│   │   └─────────────────┘    └──────────────────────────────┘   │  │
-│   └──────────────┬───────────────────────────────────────────────┘  │
-│                  │ remote_write / scrape                             │
-│        ┌─────────┴──────────────────────────────┐                   │
-│        │                                        │                   │
-│   ┌────┴──────────────────┐    ┌────────────────┴──────────────┐   │
-│   │   EKS Cluster         │    │   AMP Managed Scraper          │   │
-│   │                       │    │   (optional, AWS-managed)      │   │
-│   │  ┌─────────────────┐  │    │   source: EKS cluster          │   │
-│   │  │ Prometheus Pod  │  │    │   dest:   AMP workspace        │   │
-│   │  │ ServiceAccount  │  │    └───────────────────────────────┘   │
-│   │  │  (annotated     │  │                                        │
-│   │  │   with IRSA     │  │                                        │
-│   │  │   role ARN)     │  │    ┌───────────────────────────────┐   │
-│   │  └────────┬────────┘  │    │   CloudWatch Log Group        │   │
-│   └───────────┼───────────┘    │   /aws/prometheus/<name>      │   │
-│               │ AssumeRole     └───────────────────────────────┘   │
-│   ┌───────────┴──────────────────────────────┐                      │
-│   │  IRSA IAM Role (optional)                │                      │
-│   │  Trust: EKS OIDC Provider                │                      │
-│   │  Policy: aps:RemoteWrite + optional extra│                      │
-│   └──────────────────────────────────────────┘                      │
-└─────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph EKS["EKS Cluster"]
+        PROM[Prometheus Pod\nServiceAccount annotated\nwith IRSA role ARN]
+        OIDC[EKS OIDC Provider]
+    end
+
+    subgraph IRSA["IAM / IRSA"]
+        ROLE[IRSA IAM Role\nTrust: EKS OIDC\nPolicy: aps:RemoteWrite]
+    end
+
+    subgraph AMP["AMP Workspace"]
+        WS[AMP Workspace\nKMS Encryption optional]
+        AM[Alert Manager\nYAML config]
+        RG[Rule Group Namespaces\nRecording + Alerting Rules]
+    end
+
+    subgraph SCRAPER["Managed Scraper"]
+        MS[AWS Managed Scraper\nAuto-discovers EKS metrics]
+    end
+
+    subgraph OBS["Observability"]
+        CW[CloudWatch Log Group\n/aws/prometheus/name]
+        GRAF[Grafana\nQuery Endpoint SigV4]
+    end
+
+    PROM -->|AssumeRole via projected token| OIDC
+    OIDC --> ROLE
+    ROLE -->|SigV4 remote_write| WS
+    MS -->|Scrape EKS| EKS
+    MS -->|Forward metrics| WS
+    WS --> AM
+    WS --> RG
+    WS -->|Alert manager logs| CW
+    WS -->|QueryMetrics| GRAF
+
+    style EKS fill:#FF9900,color:#fff,stroke:#FF9900
+    style IRSA fill:#232F3E,color:#fff,stroke:#232F3E
+    style AMP fill:#1A9C3E,color:#fff,stroke:#1A9C3E
+    style SCRAPER fill:#8C4FFF,color:#fff,stroke:#8C4FFF
+    style OBS fill:#DD344C,color:#fff,stroke:#DD344C
 ```
 
 **Data flow:**

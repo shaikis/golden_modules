@@ -6,56 +6,68 @@ Production-grade Terraform module for **Amazon Athena** — workgroups, Glue cat
 
 ## Architecture
 
-```
-                         ┌─────────────────────────────────────────────────────────┐
-                         │                    AWS Account                          │
-                         │                                                         │
-  ┌──────────────┐       │  ┌──────────────────────────────────────────────────┐   │
-  │  S3 Data Lake│       │  │              AWS Glue Data Catalog               │   │
-  │              │       │  │                                                  │   │
-  │  raw_zone/   │──────▶│  │  raw_zone DB   processed_zone DB   analytics DB │   │
-  │  processed/  │       │  │      │               │                  │        │   │
-  │  analytics/  │       │  └──────┼───────────────┼──────────────────┼────────┘   │
-  └──────────────┘       │         └───────────────┼──────────────────┘            │
-         ▲               │                         ▼                               │
-         │               │  ┌──────────────────────────────────────────────────┐   │
-         │               │  │                Amazon Athena                     │   │
-         │               │  │                                                  │   │
-         │               │  │  ┌────────────┐  ┌────────────┐  ┌───────────┐  │   │
-         │               │  │  │  primary   │  │data_science│  │etl_       │  │   │
-         │               │  │  │ workgroup  │  │ workgroup  │  │pipelines  │  │   │
-         │               │  │  │ (10 GB cap)│  │(no cap)    │  │(100 GB)   │  │   │
-         │               │  │  └────────────┘  └────────────┘  └───────────┘  │   │
-         │               │  │  ┌────────────┐                                  │   │
-         │               │  │  │ reporting  │  Named Queries  Prepared Stmts   │   │
-         │               │  │  │ workgroup  │  Data Catalogs  Capacity Rsv     │   │
-         │               │  │  │ (5 GB cap) │                                  │   │
-         │               │  └──────────────────────────────────────────────────┘   │
-         │               │                         │                               │
-         └───────────────│─────────────────────────┘                               │
-                         │                         │                               │
-                         │                         ▼                               │
-                         │  ┌───────────────────────────────────────────────────┐  │
-                         │  │              Query Results (S3)                   │  │
-                         │  │      s3://prod-athena-results/primary/            │  │
-                         │  │      s3://prod-athena-results/data-science/       │  │
-                         │  │      s3://prod-athena-results/etl-pipelines/      │  │
-                         │  │      s3://prod-athena-results/reporting/          │  │
-                         │  └──────────────────────────────┬────────────────────┘  │
-                         └─────────────────────────────────┼─────────────────────  │
-                                                           │
-                    ┌──────────────────────────────────────┼──────────────────┐
-                    │               Consumers              │                  │
-                    │                                      ▼                  │
-                    │  ┌───────────────┐  ┌─────────────────────┐            │
-                    │  │  Amazon       │  │   Jupyter /         │            │
-                    │  │  QuickSight   │  │   SageMaker Studio  │            │
-                    │  └───────────────┘  └─────────────────────┘            │
-                    │  ┌───────────────┐  ┌─────────────────────┐            │
-                    │  │  Tableau /    │  │  AWS SDK / boto3    │            │
-                    │  │  Looker       │  │  (application code) │            │
-                    │  └───────────────┘  └─────────────────────┘            │
-                    └────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph S3["S3 Data Lake"]
+        RAW[raw_zone/]
+        PROC[processed/]
+        ANA[analytics/]
+    end
+
+    subgraph GLUE["AWS Glue Data Catalog"]
+        DB1[raw_zone DB]
+        DB2[processed_zone DB]
+        DB3[analytics DB]
+        FEDCAT[Federated Data Catalog\nLambda / Glue / Hive]
+    end
+
+    subgraph ATHENA["Amazon Athena"]
+        WG1[primary workgroup\n10 GB scan cap\nSSE-KMS]
+        WG2[data_science workgroup\nno cap SSE-KMS]
+        WG3[etl_pipelines workgroup\n100 GB cap]
+        WG4[reporting workgroup\n5 GB cap SSE-S3]
+        NQ[Named Queries]
+        PS[Prepared Statements]
+        CR[Capacity Reservations]
+        IAM_A[Analyst IAM Role]
+        IAM_ADM[Admin IAM Role]
+    end
+
+    subgraph RESULTS["Query Results S3"]
+        R1[s3://results/primary/]
+        R2[s3://results/data-science/]
+        R3[s3://results/etl-pipelines/]
+        R4[s3://results/reporting/]
+    end
+
+    subgraph CONSUMERS["Consumers"]
+        QS[Amazon QuickSight]
+        JUP[Jupyter / SageMaker Studio]
+        TAB[Tableau / Looker]
+        SDK[AWS SDK / boto3]
+    end
+
+    RAW --> DB1
+    PROC --> DB2
+    ANA --> DB3
+    DB1 --> WG1
+    DB2 --> WG2
+    DB3 --> WG3
+    FEDCAT --> WG1
+    WG1 --> R1
+    WG2 --> R2
+    WG3 --> R3
+    WG4 --> R4
+    R1 --> QS
+    R2 --> JUP
+    R3 --> TAB
+    R4 --> SDK
+
+    style S3 fill:#FF9900,color:#fff,stroke:#FF9900
+    style GLUE fill:#8C4FFF,color:#fff,stroke:#8C4FFF
+    style ATHENA fill:#1A9C3E,color:#fff,stroke:#1A9C3E
+    style RESULTS fill:#232F3E,color:#fff,stroke:#232F3E
+    style CONSUMERS fill:#DD344C,color:#fff,stroke:#DD344C
 ```
 
 ---

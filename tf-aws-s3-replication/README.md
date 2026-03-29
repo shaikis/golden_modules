@@ -6,6 +6,48 @@ Terraform module for S3 bucket with built-in backup strategies:
 - **AWS Backup** — scheduled backup plan with configurable retention
 - **Object Lock** — WORM immutable storage (GOVERNANCE or COMPLIANCE)
 
+## Architecture
+
+```mermaid
+graph TB
+    subgraph Source["Source Account / Region"]
+        style Source fill:#232F3E,color:#fff,stroke:#232F3E
+        SB["S3 Source Bucket\n(Versioning Enabled)"]
+        OL["Object Lock\n(WORM - GOVERNANCE/COMPLIANCE)"]
+        IAM["IAM Replication Role\naws_iam_role + Policy"]
+        SB --> OL
+        SB --> IAM
+    end
+
+    subgraph SRR["Same-Region Replication (SRR)"]
+        style SRR fill:#FF9900,color:#fff,stroke:#FF9900
+        SRR_B["SRR Replica Bucket\n(Same Region)"]
+        SRR_KMS["KMS Key\n(srr_kms_key_id)"]
+        SRR_B --> SRR_KMS
+    end
+
+    subgraph CRR["Cross-Region Replication (CRR)"]
+        style CRR fill:#1A9C3E,color:#fff,stroke:#1A9C3E
+        CRR1["CRR Replica Bucket\nus-west-2"]
+        CRR2["CRR Replica Bucket\neu-west-1"]
+        CRR_KMS["KMS Keys\n(per-destination)"]
+        CRR1 --> CRR_KMS
+        CRR2 --> CRR_KMS
+    end
+
+    subgraph Backup["AWS Backup"]
+        style Backup fill:#8C4FFF,color:#fff,stroke:#8C4FFF
+        BP["Backup Plan\n(Scheduled)"]
+        BV["Backup Vault\n(Retention Policy)"]
+        BP --> BV
+    end
+
+    IAM -->|"Replication Rule"| SRR_B
+    IAM -->|"Replication Rules\n(for_each destinations)"| CRR1
+    IAM -->|"Replication Rules\n(for_each destinations)"| CRR2
+    SB -->|"enable_aws_backup = true"| BP
+```
+
 ## Replication Modes
 
 | Mode | Use Case | Config |

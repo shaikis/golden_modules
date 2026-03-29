@@ -4,9 +4,76 @@ Terraform module for AWS Backup with support for vaults, plans, resource selecti
 
 ## Architecture
 
-<p align="center">
-  <img src="./assets/architecture-diagram.svg" alt="tf-aws-backup architecture diagram" width="100%" />
-</p>
+```mermaid
+graph TB
+    subgraph IAM["IAM"]
+        ROLE[AWS Backup IAM Role\ncreate or BYO]
+    end
+
+    subgraph NOTIFY["Notifications"]
+        SNS[SNS Topic\ncreate or BYO]
+    end
+
+    subgraph PRIMARY["Primary Region Vault"]
+        V1[Backup Vault\nKMS encrypted]
+        VLOCK[Vault Lock WORM\nmin/max retention days]
+        VPOL[Vault Policy]
+    end
+
+    subgraph DR["DR Region Vault\naws.dr provider"]
+        V2[DR Backup Vault\ncross-region copy target]
+    end
+
+    subgraph PLANS["Backup Plans"]
+        PLAN[Backup Plan]
+        RULE[Backup Rules\nschedule cron\nlifecycle delete_after]
+        COPY[Copy Actions\ndestination_vault_key or ARN]
+    end
+
+    subgraph SEL["Resource Selections"]
+        BYARN[By ARN]
+        BYTAG[By Tag\nEnvironment=prod]
+        BYCOND[By Condition]
+    end
+
+    subgraph COMPLIANCE["Compliance"]
+        AUDIT[Backup Audit Manager\nFramework Controls]
+        REPORT[Report Plans\ndelivered to S3]
+    end
+
+    subgraph MONITOR["Monitoring"]
+        CW[CloudWatch Logs\nbackup events]
+        ALARM[CloudWatch Alarms\nfailed backup/copy/restore]
+        DASH[CloudWatch Dashboard]
+    end
+
+    ROLE --> PLAN
+    SNS --> NOTIFY
+    PLAN --> RULE
+    RULE --> V1
+    RULE --> COPY
+    COPY --> V2
+    V1 --> VLOCK
+    V1 --> VPOL
+    BYARN --> PLAN
+    BYTAG --> PLAN
+    BYCOND --> PLAN
+    V1 --> CW
+    CW --> ALARM
+    ALARM --> SNS
+    ALARM --> DASH
+    V1 --> AUDIT
+    AUDIT --> REPORT
+
+    style IAM fill:#232F3E,color:#fff,stroke:#232F3E
+    style NOTIFY fill:#FF9900,color:#fff,stroke:#FF9900
+    style PRIMARY fill:#1A9C3E,color:#fff,stroke:#1A9C3E
+    style DR fill:#DD344C,color:#fff,stroke:#DD344C
+    style PLANS fill:#8C4FFF,color:#fff,stroke:#8C4FFF
+    style SEL fill:#FF9900,color:#fff,stroke:#FF9900
+    style COMPLIANCE fill:#232F3E,color:#fff,stroke:#232F3E
+    style MONITOR fill:#1A9C3E,color:#fff,stroke:#1A9C3E
+```
 
 ## Scope
 

@@ -2,6 +2,73 @@
 
 Production-grade Terraform module for Amazon EMR (Elastic MapReduce). Supports long-running clusters, transient job clusters, EMR Serverless, EMR Studio, security configurations with KMS encryption, CloudWatch alarms, and full IAM role management.
 
+## Architecture
+
+```mermaid
+graph TB
+    subgraph Inputs["Input Sources"]
+        S3Data["S3 Data Lake\n(raw/processed/analytics)"]
+        Scripts["S3 Scripts Bucket\n(bootstrap, steps, DAGs)"]
+    end
+
+    subgraph IAM["IAM Layer"]
+        SvcRole["EMR Service Role\n(aws_iam_role)"]
+        InstProfile["EC2 Instance Profile\n(aws_iam_instance_profile)"]
+        ASRole["Autoscaling Role\n(aws_iam_role)"]
+    end
+
+    subgraph Security["Security Configuration"]
+        SecConfig["EMR Security Config\n(aws_emr_security_configuration)"]
+        KMS["KMS Key\n(S3 SSE + LUKS)"]
+        LFInt["Lake Formation\nIntegration"]
+    end
+
+    subgraph Cluster["EMR Cluster (aws_emr_cluster)"]
+        Master["Master Node\n(On-Demand)"]
+        Core["Core Nodes\n(On-Demand / Spot)"]
+        Task["Task Nodes\n(Spot)"]
+        Bootstrap["Bootstrap Actions"]
+        Steps["EMR Steps\n(Spark / Hive / MapReduce)"]
+    end
+
+    subgraph Serverless["EMR Serverless"]
+        SLApp["Serverless Application\n(SPARK / HIVE)\n(aws_emrserverless_application)"]
+    end
+
+    subgraph Studio["EMR Studio"]
+        StudioRes["EMR Studio\n(IAM / SSO Auth)\n(aws_emr_studio)"]
+    end
+
+    subgraph Observability["Observability"]
+        CWAlarms["CloudWatch Alarms\n(HDFS / Idle / Node Health)"]
+        LogsS3["S3 Logs\n(cluster logs)"]
+        SNS["SNS Topic\n(alarm notifications)"]
+    end
+
+    S3Data --> Cluster
+    Scripts --> Bootstrap
+    Scripts --> Steps
+    SvcRole --> Cluster
+    InstProfile --> Cluster
+    ASRole --> Cluster
+    SecConfig --> Cluster
+    KMS --> SecConfig
+    LFInt --> SecConfig
+    Master --> Core
+    Master --> Task
+    Cluster --> Observability
+    Cluster --> LogsS3
+    CWAlarms --> SNS
+
+    style Inputs fill:#232F3E,color:#fff,stroke:#232F3E
+    style IAM fill:#FF9900,color:#fff,stroke:#FF9900
+    style Security fill:#DD344C,color:#fff,stroke:#DD344C
+    style Cluster fill:#1A9C3E,color:#fff,stroke:#1A9C3E
+    style Serverless fill:#8C4FFF,color:#fff,stroke:#8C4FFF
+    style Studio fill:#FF9900,color:#fff,stroke:#FF9900
+    style Observability fill:#232F3E,color:#fff,stroke:#232F3E
+```
+
 ## Features
 
 - Map-driven `for_each` on all primary resources (no `count`)

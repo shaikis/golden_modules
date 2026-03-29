@@ -2,6 +2,71 @@
 
 Production-grade Terraform module for **Amazon EventBridge** — custom event buses, rules, targets, Pipes, API destinations, schema registries, archives, and CloudWatch alarms.
 
+## Architecture
+
+```mermaid
+graph TB
+    subgraph Sources["Event Sources"]
+        AWSServices["AWS Services\n(S3, CloudTrail, GuardDuty, etc.)"]
+        CustomApps["Custom Applications\n(PutEvents API)"]
+        SaaS["SaaS Partners\n(Auth0, Datadog, etc.)"]
+        Pipes["EventBridge Pipes\n(DynamoDB / Kinesis / SQS source)"]
+    end
+
+    subgraph Buses["Event Buses"]
+        Default["Default Event Bus\n(aws.events)"]
+        Custom["Custom Event Buses\n(aws_cloudwatch_event_bus)\nper domain / per partner"]
+    end
+
+    subgraph RulesLayer["Rules (aws_cloudwatch_event_rule)"]
+        Scheduled["Scheduled Rules\n(cron / rate)"]
+        Pattern["Pattern-Based Rules\n(event_pattern filter)"]
+    end
+
+    subgraph Targets["Targets (aws_cloudwatch_event_target)"]
+        Lambda["Lambda Function"]
+        SFN["Step Functions\nState Machine"]
+        SQS["SQS Queue\n(+ DLQ)"]
+        SNS["SNS Topic"]
+        ECS["ECS Task\n(Fargate)"]
+        Kinesis["Kinesis / Firehose"]
+        ApiDest["API Destination\n(Slack / PagerDuty / Webhook)"]
+        CrossBus["Cross-Account\nEvent Bus"]
+    end
+
+    subgraph Supporting["Supporting Resources"]
+        Archives["Event Archives\n(aws_cloudwatch_event_archive)\nreplay support"]
+        SchemaReg["Schema Registry\n(aws_schemas_registry)\n+ Schema Discoverer"]
+        Connections["API Connections\n(OAuth / API Key / Basic)"]
+        IAMRole["IAM Role\n(EventBridge invocation)"]
+        CWAlarms["CloudWatch Alarms\n(FailedInvocations, ThrottledRules)"]
+        SNSAlerts["SNS Alerts Topic"]
+    end
+
+    AWSServices --> Default
+    CustomApps --> Custom
+    SaaS --> Custom
+    Pipes --> Targets
+
+    Default --> RulesLayer
+    Custom --> RulesLayer
+
+    Scheduled --> Targets
+    Pattern --> Targets
+
+    Connections --> ApiDest
+    Archives --> Custom
+    SchemaReg --> Custom
+    CWAlarms --> SNSAlerts
+    IAMRole --> Targets
+
+    style Sources fill:#232F3E,color:#fff,stroke:#232F3E
+    style Buses fill:#FF9900,color:#fff,stroke:#FF9900
+    style RulesLayer fill:#1A9C3E,color:#fff,stroke:#1A9C3E
+    style Targets fill:#8C4FFF,color:#fff,stroke:#8C4FFF
+    style Supporting fill:#DD344C,color:#fff,stroke:#DD344C
+```
+
 ## Features
 
 - Custom event buses (with optional KMS encryption and SaaS partner sources)

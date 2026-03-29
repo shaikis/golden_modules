@@ -2,6 +2,58 @@
 
 Terraform module for AWS ElastiCache (Redis and Memcached).
 
+## Architecture
+
+```mermaid
+graph TB
+    subgraph VPC["VPC"]
+        style VPC fill:#232F3E,color:#fff,stroke:#232F3E
+
+        subgraph Subnets["Private Subnets (Multi-AZ)"]
+            style Subnets fill:#FF9900,color:#fff,stroke:#FF9900
+            SNG["Subnet Group<br/>(auto-created)"]
+        end
+
+        subgraph Redis["Redis Replication Group"]
+            style Redis fill:#DD344C,color:#fff,stroke:#DD344C
+            PRI["Primary Node<br/>(Write)"]
+            REP1["Replica Node<br/>(Read) AZ-1"]
+            REP2["Replica Node<br/>(Read) AZ-2"]
+            PRI -->|replication| REP1
+            PRI -->|replication| REP2
+        end
+
+        subgraph Memcached["Memcached Cluster"]
+            style Memcached fill:#8C4FFF,color:#fff,stroke:#8C4FFF
+            MC1["Node 1"]
+            MC2["Node 2"]
+        end
+
+        subgraph Config["Supporting Resources"]
+            style Config fill:#1A9C3E,color:#fff,stroke:#1A9C3E
+            PG["Parameter Group"]
+            SG["Security Group"]
+            KMS["KMS Key<br/>(at-rest encryption)"]
+        end
+    end
+
+    subgraph Logging["Log Delivery"]
+        style Logging fill:#FF9900,color:#fff,stroke:#FF9900
+        CW["CloudWatch Logs<br/>(slow-log / engine-log)"]
+        FH["Kinesis Firehose<br/>(optional)"]
+    end
+
+    APP["Application"] -->|TLS + AUTH token| PRI
+    APP -->|read| REP1
+    SNG --> Redis
+    SNG --> Memcached
+    PG --> Redis
+    KMS --> Redis
+    SG --> Redis
+    Redis --> CW
+    Redis --> FH
+```
+
 ## Features
 
 - Redis replication group (cluster mode disabled or enabled)

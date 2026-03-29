@@ -2,6 +2,45 @@
 
 Terraform module for AWS Security Groups with individually managed rules.
 
+## Architecture
+
+```mermaid
+graph LR
+    subgraph VPC["VPC (vpc_id)"]
+        style VPC fill:#232F3E,color:#fff,stroke:#232F3E
+
+        subgraph SG["Security Group\naws_security_group"]
+            style SG fill:#FF9900,color:#fff,stroke:#FF9900
+            SGR["Security Group Resource\nname, description, vpc_id"]
+        end
+
+        subgraph Ingress["Ingress Rules\n(aws_vpc_security_group_ingress_rule)"]
+            style Ingress fill:#1A9C3E,color:#fff,stroke:#1A9C3E
+            IR1["Rule: https_from_alb\nport 443 from sg-alb"]
+            IR2["Rule: http_internal\nport 80 from CIDR"]
+            IR3["Rule: ssh_bastion\nport 22 from sg-bastion"]
+        end
+
+        subgraph Egress["Egress Rules\n(aws_vpc_security_group_egress_rule)"]
+            style Egress fill:#8C4FFF,color:#fff,stroke:#8C4FFF
+            ER1["Rule: allow_all_outbound\n0.0.0.0/0 all ports"]
+        end
+
+        subgraph RefSGs["Referenced Security Groups\n(sg-to-sg rules)"]
+            style RefSGs fill:#DD344C,color:#fff,stroke:#DD344C
+            ALB_SG["ALB Security Group\n(source_sg_ids)"]
+            BST_SG["Bastion Security Group\n(source_sg_ids)"]
+        end
+    end
+
+    ALB_SG -->|"source_sg_id"| IR1
+    BST_SG -->|"source_sg_id"| IR3
+    SGR --> IR1
+    SGR --> IR2
+    SGR --> IR3
+    SGR --> ER1
+```
+
 ## Features
 
 - Security group with per-rule resources (`aws_vpc_security_group_ingress_rule` / `aws_vpc_security_group_egress_rule`)
@@ -34,4 +73,3 @@ module "sg" {
   }
 }
 ```
-

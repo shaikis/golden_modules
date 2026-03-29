@@ -6,32 +6,40 @@ Terraform module that provisions an **AWS Certificate Manager (ACM) SSL/TLS cert
 
 ## Architecture
 
-```
-  ┌──────────────────────────────────────────────────────────────────────┐
-  │                         AWS Account                                  │
-  │                                                                      │
-  │   ┌─────────────────────┐       ┌──────────────────────────────────┐ │
-  │   │   Route 53 Zone     │       │     ACM Certificate              │ │
-  │   │                     │       │                                  │ │
-  │   │  CNAME record  ─────┼──────►│  domain_name: example.com        │ │
-  │   │  (validation)       │       │  SANs:        *.example.com      │ │
-  │   │                     │       │  status:      ISSUED             │ │
-  │   └─────────────────────┘       └──────────────┬───────────────────┘ │
-  │                                                │ certificate_arn      │
-  │                                                ▼                      │
-  │                                 ┌──────────────────────────────────┐ │
-  │                                 │   ALB HTTPS Listener  (port 443) │ │
-  │                                 │   CloudFront Distribution        │ │
-  │                                 └──────────────────────────────────┘ │
-  └──────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph TF["Terraform Apply"]
+        TF1[terraform apply]
+    end
 
-  Flow:
-  1. Terraform requests certificate from ACM
-  2. ACM returns CNAME name/value pairs (domain_validation_options)
-  3. Module writes CNAME records to the Route 53 hosted zone
-  4. ACM polls DNS, finds the CNAME records, and issues the certificate
-  5. aws_acm_certificate_validation waiter confirms ISSUED status
-  6. certificate_arn is ready for use in ALB listeners / CloudFront
+    subgraph DNS["Route 53"]
+        R53[Hosted Zone]
+        CNAME[CNAME Validation Record]
+    end
+
+    subgraph ACM["AWS Certificate Manager"]
+        CERT[ACM Certificate\ndomain: example.com\nSANs: *.example.com]
+        VALID[Certificate Validation\nWaiter]
+        STATUS[Status: ISSUED]
+    end
+
+    subgraph CONSUMERS["Certificate Consumers"]
+        ALB[ALB HTTPS Listener\nPort 443]
+        CF[CloudFront Distribution]
+    end
+
+    TF1 -->|1 Request certificate| CERT
+    CERT -->|2 Returns CNAME name/value\ndomain_validation_options| CNAME
+    CNAME --> R53
+    R53 -->|3 DNS lookup| VALID
+    VALID -->|4 Confirms ISSUED| STATUS
+    STATUS -->|certificate_arn| ALB
+    STATUS -->|certificate_arn| CF
+
+    style TF fill:#232F3E,color:#fff,stroke:#232F3E
+    style DNS fill:#FF9900,color:#fff,stroke:#FF9900
+    style ACM fill:#1A9C3E,color:#fff,stroke:#1A9C3E
+    style CONSUMERS fill:#8C4FFF,color:#fff,stroke:#8C4FFF
 ```
 
 ---

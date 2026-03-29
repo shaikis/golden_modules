@@ -2,6 +2,43 @@
 
 Terraform module for AWS S3 Storage Lens configuration.
 
+## Architecture
+
+```mermaid
+graph TB
+    subgraph StorageLens["S3 Storage Lens Configuration"]
+        style StorageLens fill:#FF9900,color:#fff,stroke:#FF9900
+        CFG["Storage Lens Configuration\naws_s3control_storage_lens_configuration"]
+        AL["Account-Level Metrics\n(activity, cost optimization)"]
+        BL["Bucket-Level Metrics\n(per-bucket stats)"]
+        PL["Prefix-Level Metrics\n(optional, max_depth)"]
+        FLT["Include / Exclude Filters\n(buckets, regions)"]
+        CFG --> AL
+        AL --> BL
+        BL --> PL
+        CFG --> FLT
+    end
+
+    subgraph Export["Data Export (Optional)"]
+        style Export fill:#1A9C3E,color:#fff,stroke:#1A9C3E
+        CW["CloudWatch Metrics\nExport"]
+        S3EXP["S3 Bucket Destination\n(SSE-S3 or SSE-KMS)"]
+    end
+
+    subgraph Consume["Consumption"]
+        style Consume fill:#232F3E,color:#fff,stroke:#232F3E
+        DASH["S3 Console Dashboard"]
+        ATH["Athena / QuickSight\n(via S3 export)"]
+        CWD["CloudWatch Dashboard\n(via CW export)"]
+    end
+
+    CFG -->|"data_export.cloudwatch_metrics"| CW
+    CFG -->|"data_export.s3_bucket_destination"| S3EXP
+    CW --> CWD
+    S3EXP --> ATH
+    CFG --> DASH
+```
+
 ## Scope
 
 This module manages a single `aws_s3control_storage_lens_configuration` resource.

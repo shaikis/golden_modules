@@ -2,6 +2,57 @@
 
 Terraform module for **AWS Route 53 Application Recovery Controller (ARC)** — automated, safe multi-region failover and readiness verification.
 
+## Architecture
+
+```mermaid
+graph TB
+    subgraph ARC["Route 53 ARC Cluster\n5-node global Raft cluster"]
+        CP[Control Panel\nLogical grouping per app]
+        RC1[Routing Control\nprimary-us-east-1 ON]
+        RC2[Routing Control\nfailover-us-west-2 OFF]
+        SR[Safety Rule ASSERTION\nmin 1 cell must be ON]
+        GR[Gating Rule\nmaintenance gate control]
+    end
+
+    subgraph R53["Route 53 DNS"]
+        HC1[Health Check\nprimary linked to RC1]
+        HC2[Health Check\nfailover linked to RC2]
+        DNS[DNS Failover Records\nActive/Passive routing]
+    end
+
+    subgraph Regions["Regional Cells"]
+        RG[Recovery Group]
+        CELL1[Primary Cell\nus-east-1\n100% traffic]
+        CELL2[Failover Cell\nus-west-2\n0% traffic]
+    end
+
+    subgraph Readiness["Readiness Checks"]
+        RS1[Resource Set\nMSK Cluster Primary]
+        RS2[Resource Set\nMSK Cluster Failover]
+        RC[Readiness Check\nContinuous monitoring]
+    end
+
+    CP --> RC1
+    CP --> RC2
+    CP --> SR
+    CP --> GR
+    RC1 --> HC1
+    RC2 --> HC2
+    HC1 --> DNS
+    HC2 --> DNS
+    DNS --> CELL1
+    DNS --> CELL2
+    RG --> CELL1
+    RG --> CELL2
+    RS1 --> RC
+    RS2 --> RC
+
+    style ARC fill:#FF9900,color:#fff,stroke:#FF9900
+    style R53 fill:#1A9C3E,color:#fff,stroke:#1A9C3E
+    style Regions fill:#8C4FFF,color:#fff,stroke:#8C4FFF
+    style Readiness fill:#DD344C,color:#fff,stroke:#DD344C
+```
+
 ## What ARC Does
 
 | Component | Purpose |

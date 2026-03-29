@@ -6,6 +6,56 @@ This module provisions an **AWS API Gateway v2 HTTP API** with Lambda proxy inte
 
 ---
 
+## Architecture
+
+```mermaid
+graph LR
+    subgraph Clients["Clients"]
+        APP[Web / Mobile App]
+        SLACK[Slack Events]
+        WH[Webhooks]
+    end
+
+    subgraph APIGW["API Gateway v2 HTTP API"]
+        API[aws_apigatewayv2_api\nHTTP or WebSocket]
+        CORS[CORS Configuration]
+        STAGE[Deployment Stage\nauto_deploy = true]
+        THROTTLE[Throttle Settings\nburst + rate limits]
+        ROUTES[Routes\nMETHOD /path]
+        PERM[Lambda Permissions\nper route]
+    end
+
+    subgraph LAMBDA["Lambda Functions"]
+        L1[Lambda Handler A\nPOST /slack/events]
+        L2[Lambda Handler B\nPOST /slack/interactions]
+        L3[Lambda Handler C\nGET /health]
+    end
+
+    subgraph OBS["Observability"]
+        LOG[CloudWatch Log Group\nAccess Logs]
+    end
+
+    APP --> API
+    SLACK --> API
+    WH --> API
+    API --> CORS
+    API --> STAGE
+    STAGE --> THROTTLE
+    STAGE --> ROUTES
+    ROUTES --> PERM
+    PERM -->|AWS_PROXY payload v2.0| L1
+    PERM -->|AWS_PROXY payload v2.0| L2
+    PERM -->|AWS_PROXY payload v2.0| L3
+    STAGE -->|access logs| LOG
+
+    style Clients fill:#232F3E,color:#fff,stroke:#232F3E
+    style APIGW fill:#FF9900,color:#fff,stroke:#FF9900
+    style LAMBDA fill:#1A9C3E,color:#fff,stroke:#1A9C3E
+    style OBS fill:#8C4FFF,color:#fff,stroke:#8C4FFF
+```
+
+---
+
 ## Features
 
 - Creates an `aws_apigatewayv2_api` (HTTP or WebSocket)

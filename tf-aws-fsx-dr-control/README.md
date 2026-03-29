@@ -2,6 +2,50 @@
 
 Terraform module for AWS-native orchestration of FSx for ONTAP disaster recovery operations.
 
+## Architecture
+
+```mermaid
+graph TB
+    subgraph Trigger["DR Initiation"]
+        style Trigger fill:#232F3E,color:#fff,stroke:#232F3E
+        OPS["Operator / Automation<br/>(StartExecution API)"]
+    end
+
+    subgraph ControlPlane["DR Control Plane"]
+        style ControlPlane fill:#FF9900,color:#fff,stroke:#FF9900
+        SFN["Step Functions<br/>State Machine<br/>(switchover / failover / failback)"]
+        LMB["Lambda Controller<br/>(ONTAP REST calls)"]
+        SM["Secrets Manager<br/>(ONTAP credentials)"]
+    end
+
+    subgraph StateTracking["State & Notifications"]
+        style StateTracking fill:#1A9C3E,color:#fff,stroke:#1A9C3E
+        DDB["DynamoDB Table<br/>(DR state tracking)<br/>optional"]
+        SNS["SNS Topic<br/>(workflow notifications)<br/>optional"]
+    end
+
+    subgraph DNS["DNS Cutover"]
+        style DNS fill:#8C4FFF,color:#fff,stroke:#8C4FFF
+        R53["Route 53 Record<br/>(nfs.example.com)<br/>optional"]
+    end
+
+    subgraph FSxLayer["FSx for ONTAP (not provisioned here)"]
+        style FSxLayer fill:#DD344C,color:#fff,stroke:#DD344C
+        FSXP["FSx Primary<br/>(us-east-1)"]
+        FSXDR["FSx DR<br/>(us-west-2)"]
+        FSXP -->|SnapMirror replication| FSXDR
+    end
+
+    OPS --> SFN
+    SFN -->|invoke| LMB
+    LMB -->|read credentials| SM
+    LMB -->|REST API calls| FSXP
+    LMB -->|REST API calls| FSXDR
+    LMB -->|update state| DDB
+    SFN -->|publish events| SNS
+    SFN -->|update DNS on cutover| R53
+```
+
 ## Scope
 
 This module provisions the control-plane components for DR workflows:

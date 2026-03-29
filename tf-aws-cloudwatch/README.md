@@ -4,6 +4,80 @@ A production-grade Terraform module for comprehensive AWS observability. Covers 
 
 ---
 
+## Architecture
+
+```mermaid
+graph TB
+    subgraph SOURCES["AWS Event Sources"]
+        CWM[CloudWatch Metrics\nEC2 RDS Lambda ECS ALB]
+        CT[CloudTrail API Calls\nresource deletion/stop]
+        GD[GuardDuty Findings\nsecurity threats]
+        HEALTH[AWS Health Events\nscheduled maintenance]
+        SYN[Synthetics Canaries\nexternal endpoint checks]
+        COST[Cost Anomaly Detection\nspend spikes]
+    end
+
+    subgraph RULES["EventBridge Rules"]
+        EB1[Resource Deletion Rule\nEC2 RDS S3 Lambda]
+        EB2[Resource Stop Rule\nStopInstances StopDBInstance]
+        EB3[Security Rules\nRoot IAM SG GuardDuty]
+        EB4[Health Event Rule]
+    end
+
+    subgraph ALARMS["CloudWatch Alarms"]
+        MA[Metric Alarms\ncustom map-based config]
+        CA[Composite Alarms\nreduce alert storms]
+        AD[Anomaly Detection\nno fixed threshold]
+        LOG_F[Log Metric Filters\napplication KPIs]
+    end
+
+    subgraph SNS["Amazon SNS Topic\nKMS encrypted"]
+        TOPIC[SNS Topic]
+    end
+
+    subgraph NOTIFY["Notification Destinations"]
+        OG[OpsGenie\nauto-create alert]
+        PD[PagerDuty\nauto-create incident]
+        SQS[SQS Queue\nServiceNow Jira]
+        EMAIL[Email Endpoints]
+    end
+
+    subgraph DASH["Dashboard"]
+        CWD[CloudWatch Dashboard\nLambda RDS SQS ASG ECS]
+    end
+
+    CWM --> MA
+    CWM --> AD
+    CT --> EB1
+    CT --> EB2
+    CT --> EB3
+    GD --> EB3
+    HEALTH --> EB4
+    SYN --> MA
+    COST --> TOPIC
+    MA --> CA
+    CA --> TOPIC
+    LOG_F --> TOPIC
+    EB1 --> TOPIC
+    EB2 --> TOPIC
+    EB3 --> TOPIC
+    EB4 --> TOPIC
+    TOPIC --> OG
+    TOPIC --> PD
+    TOPIC --> SQS
+    TOPIC --> EMAIL
+    MA --> CWD
+
+    style SOURCES fill:#232F3E,color:#fff,stroke:#232F3E
+    style RULES fill:#FF9900,color:#fff,stroke:#FF9900
+    style ALARMS fill:#1A9C3E,color:#fff,stroke:#1A9C3E
+    style SNS fill:#8C4FFF,color:#fff,stroke:#8C4FFF
+    style NOTIFY fill:#DD344C,color:#fff,stroke:#DD344C
+    style DASH fill:#232F3E,color:#fff,stroke:#232F3E
+```
+
+---
+
 ## Real-Time SRE Notification Architecture
 
 ```

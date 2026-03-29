@@ -9,6 +9,75 @@ required by each feature are created and scoped automatically.
 
 ---
 
+## Architecture
+
+```mermaid
+graph TB
+    subgraph LOGGING["Model Invocation Logging"]
+        LOG_ROLE[IAM Role\nleast-privilege]
+        CW_LOG[CloudWatch Log Group\nretention configurable]
+        S3_LOG[S3 Bucket\ninvocation logs]
+    end
+
+    subgraph GUARDRAIL["Guardrails"]
+        GR[Guardrail\nversioned automatically]
+        TOPIC[Topic Policies\ndenied topics]
+        CONTENT[Content Filters\nHATE VIOLENCE INSULTS]
+        WORDS[Word Lists\nmanaged + custom]
+        PII[PII Redaction\nANONYMIZE or BLOCK]
+    end
+
+    subgraph KB["Knowledge Bases"]
+        KB_RES[Knowledge Base\nvector store]
+        OSS[OpenSearch Serverless\ncollection]
+        S3_SRC[S3 Data Sources\nchunking strategy]
+        KB_ROLE[IAM Role\nper knowledge base]
+        EMBED[Embedding Model\namazon.titan-embed-text-v1]
+    end
+
+    subgraph AGENT["Agents"]
+        AG[Bedrock Agent\nfoundation model]
+        FM[Foundation Model\nanthropic.claude-3-sonnet]
+        AG_ROLE[IAM Execution Role\nper agent]
+        AG_GR[Guardrail Attachment]
+        AG_KB[Knowledge Base Association]
+        AG_ACT[Action Groups\nLambda + API schema]
+    end
+
+    subgraph KMS["Encryption"]
+        KEY[KMS Key\nshared or per-guardrail]
+    end
+
+    LOG_ROLE --> CW_LOG
+    LOG_ROLE --> S3_LOG
+    GR --> TOPIC
+    GR --> CONTENT
+    GR --> WORDS
+    GR --> PII
+    GR --> KEY
+    KB_ROLE --> OSS
+    KB_ROLE --> S3_SRC
+    S3_SRC --> EMBED
+    EMBED --> KB_RES
+    KB_RES --> OSS
+    AG --> FM
+    AG_ROLE --> AG
+    AG --> AG_GR
+    AG_GR --> GR
+    AG --> AG_KB
+    AG_KB --> KB_RES
+    AG --> AG_ACT
+    AG_ACT -->|Lambda invoke| AG_ACT
+
+    style LOGGING fill:#232F3E,color:#fff,stroke:#232F3E
+    style GUARDRAIL fill:#DD344C,color:#fff,stroke:#DD344C
+    style KB fill:#1A9C3E,color:#fff,stroke:#1A9C3E
+    style AGENT fill:#FF9900,color:#fff,stroke:#FF9900
+    style KMS fill:#8C4FFF,color:#fff,stroke:#8C4FFF
+```
+
+---
+
 ## Features
 
 - **Model invocation logging** — optionally writes embedding, image, and text
