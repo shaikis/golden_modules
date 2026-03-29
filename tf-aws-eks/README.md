@@ -62,4 +62,3 @@ module "eks" {
 
 - [Basic](examples/basic/)
 - [Complete](examples/complete/)
-
