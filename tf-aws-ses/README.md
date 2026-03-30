@@ -40,31 +40,80 @@ hardcoded regions or account IDs.
 
 ## Architecture
 
-```
-                         ┌─────────────────────────────────────────────────┐
-                         │                  AWS SES (v2)                   │
-                         │                                                 │
-  Sender App ──SendEmail─►  Identity (domain / email address)              │
-                         │      │                                          │
-                         │      └─► Configuration Set                      │
-                         │              │                                  │
-                         │    ┌─────────┼──────────────────┐               │
-                         │    ▼         ▼                  ▼               │
-                         │   SNS    CloudWatch       Kinesis Firehose       │
-                         │  Topic    Metrics       (→ S3 / Redshift / ES)  │
-                         │                                                 │
-  Internet ──InboundMail─►  Receipt Rule Set                               │
-                         │      │                                          │
-                         │   ┌──┼──────────────┐                           │
-                         │   ▼  ▼              ▼                           │
-                         │   S3  SNS        Lambda                         │
-                         │  (store) (notify) (process)                     │
-                         └─────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph DNS["DNS (Route 53 / External)"]
+        style DNS fill:#232F3E,color:#fff,stroke:#232F3E
+        DKIM_DNS["DKIM CNAME Records\n_domainkey.example.com"]
+        MX_DNS["MAIL FROM MX Record\nfeedback-smtp.region.amazonses.com"]
+        SPF_DNS["SPF TXT Record\nv=spf1 include:amazonses.com"]
+    end
 
-  DNS (Route 53 / other):
-    <token>._domainkey.<domain>  CNAME  <token>.dkim.amazonses.com   ← DKIM
-    mail.<domain>                MX     feedback-smtp.<region>.amazonses.com ← MAIL FROM
-    mail.<domain>                TXT    "v=spf1 include:amazonses.com ~all"
+    subgraph SES["AWS SES (v2)"]
+        style SES fill:#FF9900,color:#fff,stroke:#FF9900
+
+        subgraph Identity["Identity"]
+            style Identity fill:#FF9900,color:#fff,stroke:#FF9900
+            DOM["Domain Identity\naws_sesv2_email_identity"]
+            DKIM["Easy DKIM (RSA-2048)\naws_sesv2_email_identity_dkim_signing_attributes"]
+            MAILFROM["Custom MAIL FROM\naws_sesv2_email_identity_mail_from_attributes"]
+            DOM --> DKIM
+            DOM --> MAILFROM
+        end
+
+        subgraph ConfigSet["Configuration Set\naws_sesv2_configuration_set"]
+            style ConfigSet fill:#FF9900,color:#fff,stroke:#FF9900
+            CS["Configuration Set\n(suppression, reputation metrics)"]
+            ED_SNS["Event Destination: SNS\n(BOUNCE, COMPLAINT)"]
+            ED_CW["Event Destination: CloudWatch\n(metrics)"]
+            ED_FH["Event Destination: Kinesis Firehose\n(OPEN, CLICK, SEND)"]
+            CS --> ED_SNS
+            CS --> ED_CW
+            CS --> ED_FH
+        end
+
+        subgraph Inbound["Receipt Rules (Inbound)"]
+            style Inbound fill:#1A9C3E,color:#fff,stroke:#1A9C3E
+            RRS["Receipt Rule Set\naws_ses_receipt_rule_set"]
+            RR["Receipt Rules\naws_ses_receipt_rule"]
+            RRS --> RR
+        end
+
+        TMPL["Email Templates\naws_ses_template\n(HTML/text)"]
+    end
+
+    subgraph Outbound["Outbound Destinations"]
+        style Outbound fill:#8C4FFF,color:#fff,stroke:#8C4FFF
+        SNS_T["SNS Topic\n(bounces/complaints)"]
+        CW_M["CloudWatch Metrics"]
+        FH_S3["Firehose → S3/Redshift"]
+    end
+
+    subgraph InboundAct["Inbound Actions"]
+        style InboundAct fill:#8C4FFF,color:#fff,stroke:#8C4FFF
+        S3_STORE["S3 (store)"]
+        SNS_NOTIFY["SNS (notify)"]
+        LMB["Lambda (process)"]
+    end
+
+    subgraph IAMRoles["IAM Roles"]
+        style IAMRoles fill:#DD344C,color:#fff,stroke:#DD344C
+        FH_ROLE["SES → Firehose Role"]
+        S3_ROLE["SES → S3 Role"]
+    end
+
+    DKIM_DNS -.->|"DNS verification"| DKIM
+    MX_DNS -.->|"DNS record"| MAILFROM
+    SPF_DNS -.->|"DNS record"| MAILFROM
+    DOM -->|"linked to"| CS
+    ED_SNS --> SNS_T
+    ED_CW --> CW_M
+    ED_FH --> FH_S3
+    RR --> S3_STORE
+    RR --> SNS_NOTIFY
+    RR --> LMB
+    FH_ROLE --> FH_S3
+    S3_ROLE --> S3_STORE
 ```
 
 ---
@@ -546,4 +595,3 @@ Terraform, which can silently break event delivery.
 ## License
 
 MIT
-
