@@ -30,6 +30,49 @@ Terraform module for AWS S3 with security-hardened defaults.
 | Access logging | Opt-in |
 | Object Lock | Opt-in |
 
+## Architecture
+
+```mermaid
+graph TB
+    Client([Client / Application])
+
+    subgraph S3_Module["tf-aws-s3 Module"]
+        Bucket["aws_s3_bucket\n(S3 Bucket)"]
+        Ownership["aws_s3_bucket_ownership_controls"]
+        PAB["aws_s3_bucket_public_access_block\n(All public access blocked)"]
+        Versioning["aws_s3_bucket_versioning\n(Enabled + optional MFA Delete)"]
+        SSE["aws_s3_bucket_server_side_encryption_configuration\n(KMS or AES256)"]
+        Policy["aws_s3_bucket_policy\n(Deny HTTP + Require TLS 1.2)"]
+        Logging["aws_s3_bucket_logging\n(Access Log Target Bucket)"]
+        Lifecycle["aws_s3_bucket_lifecycle_configuration\n(Transitions + Expiration)"]
+        Tiering["aws_s3_intelligent_tiering_configuration"]
+        ObjectLock["aws_s3_bucket_object_lock_configuration\n(WORM — optional)"]
+        Notification["aws_s3_bucket_notification\n(Lambda / SQS / SNS)"]
+    end
+
+    KMS["aws_kms_key\n(Customer Managed Key)"]
+    LogBucket["S3 Access Log Bucket"]
+    Lambda["AWS Lambda"]
+    SQS["Amazon SQS"]
+    SNS["Amazon SNS"]
+
+    Client -->|"HTTPS only (TLS 1.2+)"| Bucket
+    Bucket --> Ownership
+    Bucket --> PAB
+    Bucket --> Versioning
+    Bucket --> SSE
+    Bucket --> Policy
+    Bucket --> Lifecycle
+    Bucket --> Tiering
+    Bucket --> ObjectLock
+    Bucket --> Notification
+    SSE -->|"encrypt with"| KMS
+    Logging -->|"write logs to"| LogBucket
+    Notification -->|"event"| Lambda
+    Notification -->|"event"| SQS
+    Notification -->|"event"| SNS
+```
+
 ## Versioning
 
 Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.

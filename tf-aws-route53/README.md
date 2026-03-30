@@ -32,6 +32,54 @@ This module can manage:
 - Support forwarding rules and VPC rule associations
 - Support custom DNS Firewall domain lists, rule groups, and VPC associations
 
+## Architecture
+
+```mermaid
+graph TB
+    subgraph HZ["Hosted Zones"]
+        PubZone["Public Hosted Zone\nexample.com"]
+        PrivZone["Private Hosted Zone\ninternal.example.com"]
+    end
+
+    subgraph Records["DNS Records"]
+        Simple["Simple\nA / AAAA / CNAME / MX / TXT"]
+        Weighted["Weighted\n90% prod / 10% canary"]
+        Latency["Latency-Based\nus-east-1 / eu-west-1"]
+        Failover["Failover\nPRIMARY / SECONDARY"]
+        Geo["Geolocation\nNA / EU / default"]
+        Multi["Multivalue Answer\nup to 8 healthy IPs"]
+    end
+
+    subgraph HC["Health Checks"]
+        EpHC["Endpoint Check\nHTTPS /health"]
+        CalcHC["Calculated Check\nN-of-M children"]
+        CwHC["CloudWatch Alarm\n(private resources)"]
+    end
+
+    subgraph Resolver["Route 53 Resolver"]
+        InboundEP["Inbound Endpoint\non-prem → AWS"]
+        OutboundEP["Outbound Endpoint\nAWS → on-prem"]
+        FwdRule["Forwarding Rule\ncorp.example.com"]
+    end
+
+    PubZone --> Simple & Weighted & Latency & Failover & Geo & Multi
+    PrivZone --> Simple
+
+    Failover --> EpHC
+    Weighted --> EpHC
+    CalcHC --> EpHC
+    CwHC --> Failover
+
+    OutboundEP --> FwdRule --> OnPremDNS["On-Premises DNS"]
+    OnPremDNS2["On-Premises DNS"] --> InboundEP
+
+    VPC["VPC"] --> PrivZone
+    VPC --> InboundEP & OutboundEP
+
+    DNSSEC["DNSSEC\nKMS key-signing"] --> PubZone
+    DNSFirewall["DNS Firewall\nblock malicious domains"] --> VPC
+```
+
 ## Versioning
 
 Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.

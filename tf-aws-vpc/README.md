@@ -27,6 +27,41 @@ Terraform module for AWS VPC with production-ready defaults.
 | VPC endpoints (avoid public internet) | `enable_s3_endpoint`, `interface_endpoints` |
 | Deletion protection | `lifecycle { prevent_destroy = true }` |
 
+## Architecture
+
+```mermaid
+graph TB
+    Internet["Internet"] --> IGW["Internet Gateway"]
+
+    subgraph VPC["VPC (10.10.0.0/16)"]
+        IGW --> PubA["Public Subnet\nus-east-1a"]
+        IGW --> PubB["Public Subnet\nus-east-1b"]
+        IGW --> PubC["Public Subnet\nus-east-1c"]
+
+        PubA --> NGWA["NAT Gateway\nus-east-1a"]
+        PubB --> NGWB["NAT Gateway\nus-east-1b"]
+        PubC --> NGWC["NAT Gateway\nus-east-1c"]
+
+        NGWA --> PrivA["Private Subnet\nus-east-1a"]
+        NGWB --> PrivB["Private Subnet\nus-east-1b"]
+        NGWC --> PrivC["Private Subnet\nus-east-1c"]
+
+        PrivA -.no route.-> DbA["Database Subnet\nus-east-1a"]
+        PrivB -.no route.-> DbB["Database Subnet\nus-east-1b"]
+        PrivC -.no route.-> DbC["Database Subnet\nus-east-1c"]
+    end
+
+    PubA --> S3EP["Gateway Endpoint\nS3 / DynamoDB"]
+    PrivA --> S3EP
+    PrivA --> IFEP["Interface Endpoints\nSSM / EC2 / Secrets Manager"]
+
+    VPC --> FL["VPC Flow Logs"]
+    FL --> CWL["CloudWatch Logs\n(KMS-encrypted)"]
+    FL --> S3["S3 Bucket"]
+
+    VPC --> VGW["VPN Gateway\n(optional)"]
+```
+
 ## Versioning
 
 Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.

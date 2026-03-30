@@ -4,6 +4,50 @@ A production-ready Terraform module that lets you manage **any AWS resource** �
 
 ---
 
+## Architecture
+
+```mermaid
+graph TB
+    TF["Terraform\nterraform apply / destroy"]
+
+    subgraph CFN["CloudFormation"]
+        style CFN fill:#FF9900,color:#fff,stroke:#FF9900
+        STACK["CloudFormation Stack\naws_cloudformation_stack"]
+        CR["Custom Resource\nCustom::ResourceType"]
+        STACK --> CR
+    end
+
+    subgraph Lambda["Lambda Function"]
+        style Lambda fill:#1A9C3E,color:#fff,stroke:#1A9C3E
+        FN["aws_lambda_function\nCreate / Update / Delete handler"]
+        RESP["HTTP PUT to\nResponseURL (pre-signed S3)"]
+        FN --> RESP
+    end
+
+    subgraph ExternalAPI["External API / AWS Service"]
+        style ExternalAPI fill:#8C4FFF,color:#fff,stroke:#8C4FFF
+        SVC["New AWS Service\n(DevOps Agent, Bedrock, Grafana…)"]
+        BOTO["boto3 API Calls\ncreate / delete / describe"]
+        SVC --> BOTO
+    end
+
+    subgraph Notify["Failure Notification"]
+        style Notify fill:#DD344C,color:#fff,stroke:#DD344C
+        SNS["SNS Topic\n(optional — on Lambda error)"]
+        CW["CloudWatch Logs\nLambda execution logs"]
+    end
+
+    TF -->|"aws_cloudformation_stack"| STACK
+    CR -->|"RequestType: Create/Update/Delete\n+ Properties"| FN
+    FN -->|"boto3 calls"| BOTO
+    RESP -->|"SUCCESS / FAILED"| STACK
+    STACK -->|"Outputs → Terraform"| TF
+    FN -->|"on error"| SNS
+    FN --> CW
+```
+
+---
+
 ## When to Use This Pattern
 
 The AWS provider for Terraform lags behind AWS service releases by weeks or months. When you need to automate a brand-new AWS API (e.g. AWS DevOps Agent, new Bedrock features, Managed Grafana advanced config) before `hashicorp/aws` ships a resource, this module gives you a clean, lifecycle-safe escape hatch:

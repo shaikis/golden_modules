@@ -4,12 +4,41 @@ Terraform module for AWS Transit Gateway — hub-and-spoke networking for on-pre
 
 ## Architecture
 
-```
- On-Premises ──── VPN/DX ────┐
-                              │
- VPC (spoke A) ───────────── TGW ──── VPC (spoke B)
-                              │
-                  VPC (spoke C) ── Shared Services
+```mermaid
+graph TB
+    subgraph Spokes["Spoke VPCs"]
+        VpcA["VPC spoke-a\n(App)"]
+        VpcB["VPC spoke-b\n(App)"]
+        VpcC["VPC spoke-c\n(Shared Services)"]
+    end
+
+    subgraph OnPrem["On-Premises / External"]
+        CGW["Customer Gateway\n(VPN)"]
+        DX["Direct Connect Gateway"]
+    end
+
+    subgraph TGWCore["Transit Gateway (hub)"]
+        TGW["Transit Gateway\nASN 64512 / ECMP"]
+
+        subgraph RouteTables["Custom Route Tables"]
+            RTPROD["prod-rt\n(Spoke A, B)"]
+            RTSHARED["shared-rt\n(Spoke C)"]
+            RTVPN["vpn-rt\n(VPN attachment)"]
+        end
+    end
+
+    subgraph RAM["AWS RAM Sharing"]
+        RAMShare["Resource Share\n→ Account 111122223333\n→ Account 444455556666"]
+    end
+
+    VpcA -- "TGW Attachment" --> TGW
+    VpcB -- "TGW Attachment" --> TGW
+    VpcC -- "TGW Attachment" --> TGW
+    CGW -- "VPN Connection" --> TGW
+    DX -- "DXGW Association" --> TGW
+
+    TGW --> RTPROD & RTSHARED & RTVPN
+    TGW --> RAMShare
 ```
 
 ## Features

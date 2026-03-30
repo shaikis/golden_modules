@@ -347,6 +347,53 @@ module "fintech_transcribe" {
 }
 ```
 
+## Architecture
+
+```mermaid
+graph TB
+    subgraph Inputs["Input Sources"]
+        S3_AUDIO["S3 Audio Bucket\n(transcription job input)"]
+        S3_TRAIN["S3 Training Bucket\n(language model corpus)"]
+        S3_VOCAB["S3 Vocabulary File\n(word lists, medical terms)"]
+    end
+
+    subgraph TranscribeResources["Amazon Transcribe Resources"]
+        VOC["Custom Vocabularies\n(domain-specific phrases)"]
+        VF["Vocabulary Filters\n(word masking / profanity)"]
+        CLM["Custom Language Models\n(NarrowBand / WideBand)"]
+        MVOC["Medical Vocabularies\n(en-US only)"]
+    end
+
+    subgraph IAM["IAM & Encryption"]
+        ROLE["IAM Role\n(auto-created or BYO)"]
+        KMS["KMS Key\n(output encryption)"]
+    end
+
+    subgraph Runtime["Runtime Usage (Application-driven)"]
+        JOB["Transcription Job\n(StartTranscriptionJob)"]
+        MED["Medical Transcription Job\n(StartMedicalTranscriptionJob)"]
+    end
+
+    subgraph Outputs["Output"]
+        S3_OUT["S3 Output Bucket\n(transcript JSON)"]
+    end
+
+    S3_AUDIO --> JOB
+    S3_AUDIO --> MED
+    S3_TRAIN --> CLM
+    S3_VOCAB --> VOC
+    S3_VOCAB --> MVOC
+    VOC --> JOB
+    VF --> JOB
+    CLM --> JOB
+    MVOC --> MED
+    ROLE --> JOB
+    ROLE --> MED
+    KMS --> S3_OUT
+    JOB --> S3_OUT
+    MED --> S3_OUT
+```
+
 ## Notes
 
 - Custom language model training is asynchronous and can take several hours. Terraform will wait for the model to reach `COMPLETED` status before marking the resource created.

@@ -19,6 +19,57 @@ All features are **choice-based** — enable only what you need via `tfvars`.
 
 ---
 
+## Architecture
+
+```mermaid
+graph TB
+    App["Application<br/>(ECS / EC2 / Lambda)"]
+
+    subgraph VPC["VPC"]
+        subgraph SubnetA["Private Subnet — AZ-a"]
+            Primary["RDS Primary Instance<br/>(writer)"]
+        end
+        subgraph SubnetB["Private Subnet — AZ-b"]
+            Standby["RDS Standby Instance<br/>(Multi-AZ / sync replica)"]
+        end
+        subgraph SubnetC["Private Subnet — AZ-c"]
+            ReadReplica["Read Replica<br/>(async, optional)"]
+        end
+        SG["Security Group<br/>port 3306 / 5432 / 1521 / 1433"]
+        SubnetGroup["DB Subnet Group"]
+    end
+
+    KMS["KMS CMK<br/>(storage + secrets +<br/>Performance Insights)"]
+    ParamGroup["Parameter Group<br/>(engine settings)"]
+    OptionGroup["Option Group<br/>(Oracle / SQL Server)"]
+    Secrets["Secrets Manager<br/>(master password)"]
+    Monitoring["Enhanced Monitoring<br/>(IAM Role → CloudWatch)"]
+    PI["Performance Insights<br/>(query analysis)"]
+    CWLogs["CloudWatch Logs<br/>(error / slow query / audit)"]
+    Backups["Automated Backups<br/>+ Final Snapshot"]
+    DRBackup["DR Region<br/>Backup Replication"]
+    DRReplica["DR Region<br/>Cross-Region Replica"]
+
+    App -->|"TLS"| SG
+    SG --> Primary
+    Primary <-->|"sync replication"| Standby
+    Primary -->|"async replication"| ReadReplica
+    SubnetGroup --> SubnetA & SubnetB & SubnetC
+    KMS -->|"encrypts"| Primary
+    KMS -->|"encrypts"| Secrets
+    ParamGroup --> Primary
+    OptionGroup --> Primary
+    Primary --> Secrets
+    Primary --> Monitoring
+    Primary --> PI
+    Primary --> CWLogs
+    Primary --> Backups
+    Backups -->|"aws_db_instance_automated_backups_replication"| DRBackup
+    Primary -->|"replicate_source_db"| DRReplica
+```
+
+---
+
 ## Quick Start
 
 ```bash

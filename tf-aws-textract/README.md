@@ -21,6 +21,53 @@ Terraform module for provisioning the surrounding infrastructure required to use
 
 ## Architecture
 
+```mermaid
+graph TB
+    subgraph Inputs["Input Sources"]
+        S3_IN["S3 Input Bucket\n(documents, PDFs, images)"]
+    end
+
+    subgraph IAM["IAM Roles"]
+        CALLER["IAM Caller Role\n(Lambda / EC2 calls Textract)"]
+        SVC["IAM Service Role\n(Textract publishes to SNS)"]
+    end
+
+    subgraph TextractAPI["Amazon Textract (API Service)"]
+        SYNC["Synchronous APIs\nDetectDocumentText\nAnalyzeDocument"]
+        ASYNC["Asynchronous APIs\nStartDocumentTextDetection\nStartDocumentAnalysis"]
+    end
+
+    subgraph AsyncPipeline["Async Notification Pipeline"]
+        SNS["SNS Topic\n(job completion)"]
+        SQS["SQS Queue\n(buffers results)"]
+        DLQ["SQS Dead-Letter Queue\n(failed messages)"]
+    end
+
+    subgraph Outputs["Outputs"]
+        APP["Application / Lambda\n(GetDocumentTextDetection)"]
+        S3_OUT["S3 Output Bucket\n(extracted text results)"]
+    end
+
+    subgraph Monitoring["Monitoring"]
+        CW["CloudWatch Alarms\n(queue depth / stale messages)"]
+        KMS["KMS Key\n(SNS + SQS encryption)"]
+    end
+
+    S3_IN --> SYNC
+    S3_IN --> ASYNC
+    CALLER --> SYNC
+    CALLER --> ASYNC
+    SVC --> SNS
+    ASYNC --> SNS
+    SNS --> SQS
+    SQS --> DLQ
+    SQS --> APP
+    APP --> S3_OUT
+    SQS --> CW
+    KMS --> SNS
+    KMS --> SQS
+```
+
 ### Async Text Extraction Flow
 
 ```

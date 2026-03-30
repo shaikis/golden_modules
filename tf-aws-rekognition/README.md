@@ -212,6 +212,46 @@ output "project_arns" {
 
 ---
 
+## Architecture
+
+```mermaid
+graph TB
+    subgraph Inputs["Input Sources"]
+        S3_IMG["S3 Bucket\n(images / video files)"]
+        KVS["Kinesis Video Stream\n(live camera feed)"]
+    end
+
+    subgraph Rekognition["Amazon Rekognition"]
+        COL["Face Collection\n(indexed faces)"]
+        SP["Stream Processor\n(real-time face search)"]
+        CLP["Custom Labels Project\n(object/scene detection)"]
+    end
+
+    subgraph Outputs["Output Destinations"]
+        KDS["Kinesis Data Stream\n(stream processor results)"]
+        SNS["SNS Topic\n(stream processor notifications)"]
+        CW["CloudWatch Alarms\n(error / throttle monitoring)"]
+    end
+
+    subgraph IAM["IAM & Encryption"]
+        ROLE["IAM Role\n(auto-created or BYO)"]
+        KMS["KMS Key\n(collection encryption)"]
+    end
+
+    S3_IMG --> COL
+    S3_IMG --> CLP
+    KVS --> SP
+    COL --> SP
+    SP --> KDS
+    SP --> SNS
+    ROLE --> SP
+    ROLE --> COL
+    ROLE --> CLP
+    KMS --> COL
+    KDS --> CW
+    SNS --> CW
+```
+
 ## IAM permissions auto-created
 
 When `create_iam_role = true` the module creates a least-privilege inline policy covering:

@@ -23,6 +23,30 @@ Terraform module for AWS KMS (Key Management Service).
 | Deletion protection | `lifecycle { prevent_destroy = true }` |
 | Deletion window | 30 days (configurable, min 7) |
 
+## Architecture
+
+```mermaid
+graph TB
+    Key["KMS Customer Master Key\n(Symmetric / Asymmetric)"]
+    KeyPolicy["Key Policy"]
+    Admins["Key Administrators\n(IAM roles/users)"]
+    Users["Key Users\n(app roles, Lambda)"]
+    ServiceRoles["Service Roles\n(Auto Scaling, etc.)"]
+    Aliases["Key Aliases\nalias/app-secrets-prod"]
+    Grants["KMS Grants\n(constrained operations)"]
+    MultiRegion["Multi-Region Replica Key\n(secondary region)"]
+    Root["AWS Root Account\n(break-glass access)"]
+
+    Key --> KeyPolicy
+    KeyPolicy --> Admins
+    KeyPolicy --> Users
+    KeyPolicy --> ServiceRoles
+    KeyPolicy --> Root
+    Key --> Aliases
+    Key --> Grants
+    Key --> MultiRegion
+```
+
 ## Versioning
 
 Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.

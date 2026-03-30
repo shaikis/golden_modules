@@ -20,7 +20,41 @@ Covers all 9 SSM features. Every feature is opt-in. Use one, some, or all togeth
 
 ---
 
-## Architecture Overview
+## Architecture
+
+```mermaid
+graph TB
+    SSM["AWS Systems Manager"]
+
+    ParamStore["Parameter Store\n/app/prod/db_host\n/app/prod/secret (SecureString+KMS)\n/common/region (StringList)"]
+    KMS["KMS Key\n(SecureString encryption)"]
+
+    PatchMgr["Patch Manager\nPatch Baselines (AL2023, Windows)\nPatch Groups via EC2 tags"]
+    MaintWin["Maintenance Window\ncron(0 2 ? * SUN *)\nTask: AWS-RunPatchBaseline"]
+
+    SessionMgr["Session Manager\nNo SSH / No bastion\nIAM-controlled access"]
+    CWLogs["CloudWatch Logs\n(session audit trail)"]
+    S3Logs["S3 Bucket\n(session log archive)"]
+
+    AppConfig["AppConfig\nApplication\nEnvironments (prod/staging)\nFeature Flags / Freeform Config\nDeployment Strategy"]
+
+    StateMgr["State Manager\nAssociations (scheduled docs)\nInstall CW Agent\nGather Inventory"]
+
+    HybridAct["Hybrid Activation\nOn-premises servers\nActivation ID + Code"]
+
+    SSM --> ParamStore
+    SSM --> PatchMgr
+    SSM --> SessionMgr
+    SSM --> AppConfig
+    SSM --> StateMgr
+    SSM --> HybridAct
+    ParamStore --> KMS
+    PatchMgr --> MaintWin
+    SessionMgr --> CWLogs
+    SessionMgr --> S3Logs
+```
+
+## Architecture Overview (ASCII)
 
 ```
 +----------------------------------------------------------------------+

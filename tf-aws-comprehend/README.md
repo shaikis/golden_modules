@@ -268,6 +268,53 @@ module "comprehend" {
 
 ---
 
+## Architecture
+
+```mermaid
+graph TB
+    subgraph Inputs["Input Sources"]
+        S3_IN["S3 Input Bucket\n(training & entity data)"]
+        S3_TEST["S3 Test Dataset\n(optional)"]
+    end
+
+    subgraph IAM["IAM"]
+        ROLE["IAM Role\n(auto-created or BYO)"]
+        KMS["KMS Key\n(model + volume encryption)"]
+    end
+
+    subgraph Classifiers["Custom Document Classifiers"]
+        DC_ML["Multi-Class Classifier"]
+        DC_MLL["Multi-Label Classifier"]
+    end
+
+    subgraph Recognizers["Custom Entity Recognizers"]
+        ER["Entity Recognizer\n(domain-specific NER)"]
+        ET["Entity Types\n(PRODUCT, SKU, EMPLOYEE_ID ...)"]
+    end
+
+    subgraph VPC["VPC (optional)"]
+        SG["Security Groups"]
+        SN["Private Subnets"]
+    end
+
+    S3_IN --> DC_ML
+    S3_IN --> DC_MLL
+    S3_TEST --> DC_ML
+    S3_TEST --> DC_MLL
+    S3_IN --> ER
+    ET --> ER
+    ROLE --> DC_ML
+    ROLE --> DC_MLL
+    ROLE --> ER
+    KMS --> DC_ML
+    KMS --> DC_MLL
+    KMS --> ER
+    SG --> ER
+    SN --> ER
+    SG --> DC_ML
+    SN --> DC_ML
+```
+
 ## Cost & timing notes
 
 Custom model training in AWS Comprehend:

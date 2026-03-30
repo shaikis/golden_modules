@@ -25,6 +25,31 @@ It does not currently cover:
 - Optional access point public access block controls
 - Common tags plus per-access-point tags
 
+## Architecture
+
+```mermaid
+graph TB
+    AppClient([Application / IAM Principal])
+    VPCClient([VPC-only Client])
+
+    subgraph AccessPoints_Module["tf-aws-s3-access-points Module"]
+        AP_Shared["aws_s3_access_point\n(Shared Access Point)\nPublic access block: all true"]
+        AP_Private["aws_s3_access_point\n(Private / VPC Access Point)\nvpc_configuration enforced"]
+        AP_Policy["Access Point Policy\n(optional inline IAM policy)"]
+    end
+
+    S3Bucket["aws_s3_bucket\n(Existing S3 Bucket)"]
+    VPC["Amazon VPC\n(vpc_id restriction)"]
+
+    AppClient -->|"requests via ARN"| AP_Shared
+    VPCClient -->|"requests from VPC only"| AP_Private
+    AP_Shared -->|"scoped access"| S3Bucket
+    AP_Private -->|"scoped access"| S3Bucket
+    AP_Private -->|"restricted to"| VPC
+    AP_Policy -.->|"attached to"| AP_Shared
+    AP_Policy -.->|"attached to"| AP_Private
+```
+
 ## Versioning
 
 Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.

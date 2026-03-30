@@ -162,6 +162,40 @@ Constraints:
 
 ---
 
+## Architecture
+
+```mermaid
+graph TB
+    subgraph StaticConfig["Static Configuration (Terraform-managed)"]
+        LEX["Polly Lexicons\n(PLS XML pronunciation rules)"]
+        ROLE["IAM Role\n(auto-created or BYO)"]
+    end
+
+    subgraph Runtime["Runtime (Application-managed)"]
+        APP["Application\n(Lambda / EC2 / ECS)"]
+        SYNC["SynthesizeSpeech\n(synchronous, stream)"]
+        ASYNC["StartSpeechSynthesisTask\n(asynchronous, long text)"]
+    end
+
+    subgraph Outputs["Output Destinations"]
+        STREAM["Audio Stream\n(returned inline)"]
+        S3_OUT["S3 Bucket\n(synthesized audio files)"]
+    end
+
+    subgraph KMS["Encryption (optional)"]
+        KEY["KMS Key\n(S3 output encryption)"]
+    end
+
+    LEX --> SYNC
+    LEX --> ASYNC
+    ROLE --> APP
+    APP --> SYNC
+    APP --> ASYNC
+    SYNC --> STREAM
+    ASYNC --> S3_OUT
+    KEY --> S3_OUT
+```
+
 ## Requirements
 
 | Name | Version |

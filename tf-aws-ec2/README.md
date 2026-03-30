@@ -25,6 +25,54 @@ Terraform module for AWS EC2 instances with security-hardened defaults.
 | `lifecycle.prevent_destroy` | `true` |
 | `lifecycle.ignore_changes [ami]` | AMI drift won't cause replacement |
 
+## Architecture
+
+```mermaid
+graph TB
+    subgraph VPC["VPC / Subnet"]
+        EC2["EC2 Instance\n(On-Demand or Spot)"]
+        SG["Security Group"]
+        EIP["Elastic IP\n(optional)"]
+    end
+
+    subgraph Storage["EBS Storage"]
+        ROOT["Root Volume\n(encrypted · KMS)"]
+        DATA["Additional EBS Volumes\n(encrypted · KMS)"]
+    end
+
+    subgraph IAM["IAM"]
+        ROLE["IAM Role"]
+        PROFILE["Instance Profile"]
+    end
+
+    subgraph Metadata["Instance Metadata"]
+        IMDS["IMDSv2\n(http_tokens=required)"]
+    end
+
+    KMS["KMS Key\n(EBS encryption)"]
+    CW["CloudWatch\n(detailed monitoring)"]
+    SSM["SSM Parameter\n(AMI lookup)"]
+
+    SSM -->|"latest AMI"| EC2
+    PROFILE --> EC2
+    ROLE --> PROFILE
+    SG --> EC2
+    EIP --> EC2
+    EC2 --> ROOT
+    EC2 --> DATA
+    KMS --> ROOT
+    KMS --> DATA
+    EC2 --> IMDS
+    EC2 --> CW
+
+    style VPC fill:#FF9900,color:#fff,stroke:#FF9900
+    style Storage fill:#3F8624,color:#fff,stroke:#3F8624
+    style IAM fill:#DD344C,color:#fff,stroke:#DD344C
+    style Metadata fill:#1A73E8,color:#fff,stroke:#1A73E8
+    style KMS fill:#8C4FFF,color:#fff,stroke:#8C4FFF
+    style CW fill:#FF4F8B,color:#fff,stroke:#FF4F8B
+```
+
 ## Versioning
 
 Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.

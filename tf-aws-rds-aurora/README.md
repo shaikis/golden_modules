@@ -26,6 +26,62 @@ Terraform module for AWS Aurora clusters (MySQL and PostgreSQL).
 | Aurora Serverless v2 (PG) | `aurora-postgresql` | `15.4` | `db.serverless` |
 | Aurora Serverless v2 (MySQL) | `aurora-mysql` | `8.0.mysql_aurora.3.04.0` | `db.serverless` |
 
+## Architecture
+
+```mermaid
+graph TB
+    App["Application<br/>(ECS / EC2 / Lambda)"]
+
+    subgraph GlobalCluster["Aurora Global Cluster (optional)"]
+        subgraph PrimaryRegion["Primary Region"]
+            subgraph PrimaryVPC["VPC"]
+                subgraph SubnetA["Private Subnet — AZ-a"]
+                    Writer["Aurora Writer Instance<br/>(promotion_tier = 0)"]
+                end
+                subgraph SubnetB["Private Subnet — AZ-b"]
+                    Reader1["Aurora Reader Instance<br/>(promotion_tier = 1)"]
+                end
+                subgraph SubnetC["Private Subnet — AZ-c"]
+                    Reader2["Aurora Reader Instance<br/>(promotion_tier = 2)"]
+                end
+                WriterEP["Cluster Endpoint<br/>(writer)"]
+                ReaderEP["Reader Endpoint<br/>(load-balanced reads)"]
+                SG["Security Group<br/>port 5432 / 3306"]
+                SubnetGroup["DB Subnet Group"]
+            end
+        end
+        subgraph DRRegion["DR Region (Global DB secondary)"]
+            DRCluster["Aurora Secondary Cluster<br/>(read-only until failover)"]
+        end
+    end
+
+    Serverless["Aurora Serverless v2<br/>instance_class = db.serverless<br/>min 0.5 → max 32 ACU"]
+    KMS["KMS CMK<br/>(storage + Secrets Manager +<br/>Performance Insights)"]
+    ParamGroup["Cluster Parameter Group"]
+    Secrets["Secrets Manager<br/>(master password)"]
+    Monitoring["Enhanced Monitoring<br/>(IAM Role → CloudWatch)"]
+    PI["Performance Insights"]
+    Backtrack["Backtrack<br/>(aurora-mysql, rewind to past)"]
+    AutoScale["Auto Scaling<br/>(target CPU %)"]
+
+    App -->|"TLS"| SG
+    SG --> WriterEP & ReaderEP
+    WriterEP --> Writer
+    ReaderEP --> Reader1 & Reader2
+    Writer <-->|"storage replication"| Reader1 & Reader2
+    SubnetGroup --> SubnetA & SubnetB & SubnetC
+    Writer -->|"async global replication"| DRCluster
+    KMS -->|"encrypts"| Writer
+    KMS -->|"encrypts"| Secrets
+    ParamGroup --> Writer
+    Writer --> Secrets
+    Writer --> Monitoring & PI & Backtrack
+    AutoScale -->|"adds / removes readers"| Reader1 & Reader2
+    Writer -.->|"Serverless v2 option"| Serverless
+```
+
+---
+
 ## Versioning
 
 Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.
