@@ -6,45 +6,39 @@ A production-ready Terraform module that provisions an **Amazon DocumentDB** (Mo
 
 ## Architecture
 
-```
-                          ┌─────────────────────────────────────────────────┐
-                          │                    VPC                          │
-                          │                                                 │
-  ┌─────────────┐         │  ┌──────────────────────────────────────────┐  │
-  │ Application │─────────┼─▶│          Security Group (:27017)         │  │
-  │  (ECS/EC2)  │  TLS    │  └────────────────┬─────────────────────────┘  │
-  └─────────────┘         │                   │                             │
-         │                │     ┌─────────────▼──────────────────────┐     │
-         │                │     │        DocumentDB Cluster           │     │
-         │                │     │    (cluster endpoint / writer)      │     │
-         │                │     │                                     │     │
-         │                │     │  ┌──────────┐  ┌────────────────┐  │     │
-         │                │     │  │  AZ-1    │  │     AZ-2       │  │     │
-         │                │     │  │ PRIMARY  │  │    READER      │  │     │
-         │                │     │  │(tier 0)  │  │   (tier 1)     │  │     │
-         │                │     │  └──────────┘  └────────────────┘  │     │
-         │                │     │                                     │     │
-         │                │     │              ┌────────────────┐     │     │
-         │                │     │              │     AZ-3       │     │     │
-         │                │     │              │    READER      │     │     │
-         │                │     │              │   (tier 2)     │     │     │
-         │                │     │              └────────────────┘     │     │
-         │                │     └─────────────────────────────────────┘     │
-         │                │                                                 │
-         │                └─────────────────────────────────────────────────┘
-         │
-         │         ┌──────────────────────┐     ┌──────────────────────────┐
-         └────────▶│   Secrets Manager    │     │   CloudWatch Logs        │
-                   │  (credentials + URI) │     │  /aws/docdb/<name>/audit │
-                   │  KMS-encrypted       │     │  /aws/docdb/<name>/       │
-                   └──────────────────────┘     │           profiler       │
-                                                └──────────────────────────┘
+```mermaid
+graph TB
+    APP["Application\n(ECS / EC2)"]
 
-                   ┌──────────────────────┐
-                   │   KMS Customer Key   │
-                   │  (storage + secrets  │
-                   │   + log encryption)  │
-                   └──────────────────────┘
+    subgraph VPC["VPC"]
+        SG["Security Group\nport 27017"]
+
+        subgraph Cluster["DocumentDB Cluster"]
+            style Cluster fill:#FF9900,color:#232F3E
+            PRI["AZ-1 PRIMARY\n(promotion_tier 0)"]
+            R1["AZ-2 READER\n(promotion_tier 1)"]
+            R2["AZ-3 READER\n(promotion_tier 2)"]
+        end
+
+        SUB["Subnet Group\n(≥ 2 AZs)"]
+        PG["Parameter Group\n(TLS enabled)"]
+    end
+
+    SM["Secrets Manager\ncredentials + URI\n(KMS-encrypted)"]
+    CWL["CloudWatch Logs\naudit / profiler"]
+    KMS["KMS Customer Key\nstorage + secrets + logs"]
+
+    APP -- "TLS :27017" --> SG
+    SG --> Cluster
+    SUB --> Cluster
+    PG --> Cluster
+    PRI -- "writer endpoint" --> APP
+    R1 & R2 -- "reader endpoint" --> APP
+    Cluster --> CWL
+    KMS --> Cluster
+    KMS --> SM
+    KMS --> CWL
+    APP --> SM
 ```
 
 ---

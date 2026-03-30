@@ -287,6 +287,89 @@ environments = {
 
 ---
 
+## Architecture
+
+```mermaid
+graph TD
+    subgraph S3Bucket["S3 DAGs Bucket (versioned)"]
+        DAGS[dags/\nPython DAG files]
+        REQS[requirements/requirements.txt]
+        PLUGINS[plugins/plugins.zip]
+        SCRIPTS[scripts/startup.sh]
+    end
+
+    subgraph MWAA["MWAA Environment"]
+        SCHED[Airflow Scheduler\nDAG parsing · task scheduling]
+        WORKER[Airflow Workers\nauto-scaled min→max]
+        WEB[Airflow Webserver\nPRIVATE_ONLY by default]
+        META[(Metadata DB\nRDS Aurora - managed)]
+    end
+
+    subgraph VPC["VPC (Private Subnets)"]
+        SG[Security Group\nmwaa-sg]
+        PRIV[Private Subnet AZ-a]
+        PRIV2[Private Subnet AZ-b]
+    end
+
+    subgraph SecretsManager["AWS Secrets Manager"]
+        CONN[airflow/connections/*]
+        VARS[airflow/variables/*]
+    end
+
+    subgraph DownstreamServices["Orchestrated AWS Services"]
+        GLUE[AWS Glue\nETL jobs]
+        EMR[Amazon EMR\nSpark clusters]
+        REDSHIFT[Amazon Redshift\nSQL workloads]
+        SAGE[Amazon SageMaker\nML pipelines]
+        LAMBDA_D[AWS Lambda\nserverless tasks]
+        SFN[Step Functions\nstate machines]
+    end
+
+    subgraph IAM["IAM"]
+        ROLE[MWAA Execution Role\nauto-created or BYO]
+        PERMS[Service permissions\nGlue · EMR · Redshift · SageMaker · Lambda · SFN]
+    end
+
+    subgraph Ops["Observability"]
+        CWL[CloudWatch Logs\nDAG · scheduler · task · webserver · worker]
+        CWA[CloudWatch Alarms\nscheduler health · queue depth · parse time]
+        SNS4[SNS Topic]
+    end
+
+    DAGS --> SCHED
+    REQS --> WORKER
+    PLUGINS --> WORKER
+    SCRIPTS --> WORKER
+
+    SCHED --> WORKER
+    SCHED --> META
+    WORKER --> META
+    WEB --> META
+
+    WORKER -.->|runs in| VPC
+    VPC --> PRIV
+    VPC --> PRIV2
+
+    CONN --> WORKER
+    VARS --> WORKER
+
+    ROLE --> MWAA
+    PERMS --> ROLE
+
+    WORKER -->|GlueJobOperator| GLUE
+    WORKER -->|EmrCreateJobFlowOperator| EMR
+    WORKER -->|RedshiftDataOperator| REDSHIFT
+    WORKER -->|SageMakerTrainingOperator| SAGE
+    WORKER -->|LambdaInvokeFunctionOperator| LAMBDA_D
+    WORKER -->|StepFunctionStartExecutionOperator| SFN
+
+    SCHED --> CWL
+    WORKER --> CWL
+    WEB --> CWL
+    CWL --> CWA
+    CWA --> SNS4
+```
+
 ## Inputs
 
 | Name | Description | Type | Default |

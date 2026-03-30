@@ -234,6 +234,56 @@ module "codebuild_vpc" {
 
 ---
 
+## Architecture
+
+```mermaid
+graph TB
+    subgraph Sources["Source Providers"]
+        GH["GitHub / GitHub Enterprise"]
+        BB["Bitbucket"]
+        CC["CodeCommit"]
+        S3S["S3 Source Bucket"]
+        NS["NO_SOURCE"]
+    end
+
+    subgraph VPC["VPC (optional)"]
+        SG["Security Group"]
+        SN["Private Subnets"]
+    end
+
+    subgraph CBProject["CodeBuild Project"]
+        style CBProject fill:#FF9900,color:#232F3E
+        ENV["Build Environment\n(Linux x86 / ARM64 / GPU)"]
+        BS["Buildspec\n(inline or repo file)"]
+        CACHE["Cache\n(LOCAL / S3 / NONE)"]
+    end
+
+    subgraph Artifacts["Artifacts & Logs"]
+        S3A["S3 Artifacts Bucket"]
+        CWL["CloudWatch Log Group\n/aws/codebuild/<name>"]
+        S3L["S3 Logs Bucket (optional)"]
+    end
+
+    subgraph IAM["IAM Service Role"]
+        style IAM fill:#232F3E,color:#FFFFFF
+        ROLE["CodeBuild Role"]
+        POL["Base Policy\n(CW Logs, ECR, S3, KMS)"]
+        VPCP["VPC Policy\n(EC2 networking)"]
+        ADD["Additional Statements"]
+    end
+
+    KMS["KMS Key\n(artifact encryption)"]
+    ECR["Amazon ECR\n(push/pull images)"]
+
+    GH & BB & CC & S3S & NS --> CBProject
+    CBProject --> S3A & CWL & S3L
+    CBProject --> ECR
+    VPC --> CBProject
+    IAM --> CBProject
+    KMS --> S3A
+    ROLE --> POL & VPCP & ADD
+```
+
 ## Notes
 
 ### ARM64 image compatibility

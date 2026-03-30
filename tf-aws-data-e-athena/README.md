@@ -6,6 +6,36 @@ Production-grade Terraform module for **Amazon Athena** — workgroups, Glue cat
 
 ## Architecture
 
+```mermaid
+graph LR
+    subgraph Sources["Data Sources"]
+        S3RAW["S3 Data Lake\nraw / processed / analytics"]
+        EXT["External DBs\nRDS · DynamoDB · Redis"]
+    end
+
+    subgraph Processing["Processing (this module)"]
+        WG["Athena Workgroups\nprimary · data_science\netl_pipelines · reporting"]
+        CAT["Glue Data Catalog\nDatabases & Tables"]
+        NAMED["Named Queries\nPrepared Statements"]
+        FED["Federated Catalogs\nLAMBDA · GLUE · HIVE"]
+        CAP["Capacity Reservations\nProvisioned DPUs"]
+    end
+
+    subgraph Destinations["Destinations"]
+        RES["S3 Results Bucket\nper-workgroup prefixes"]
+        BI["Consumers\nQuickSight · Tableau\nSageMaker · boto3"]
+    end
+
+    Sources --> CAT
+    EXT --> FED
+    FED --> WG
+    CAT --> WG
+    NAMED --> WG
+    CAP --> WG
+    WG --> RES
+    RES --> BI
+```
+
 ```
                          ┌─────────────────────────────────────────────────────────┐
                          │                    AWS Account                          │

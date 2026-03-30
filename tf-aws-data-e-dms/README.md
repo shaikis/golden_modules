@@ -6,6 +6,42 @@ Covers replication instances, source and target endpoints (all engine types), re
 
 ---
 
+## Architecture
+
+```mermaid
+graph LR
+    subgraph Sources["Source Databases"]
+        ORA["Oracle\non-premises / RDS"]
+        PG["PostgreSQL RDS\nAurora PostgreSQL"]
+        MYSQL["MySQL RDS\nAurora MySQL"]
+    end
+
+    subgraph Processing["Processing (this module)"]
+        RI["Replication Instances\ndms.r5 · dms.t3\nMulti-AZ"]
+        SE["Source Endpoints\noracle · postgres\nmysql · aurora"]
+        TE["Target Endpoints\ns3 · redshift · aurora\nkinesis · dynamodb"]
+        TASK["Replication Tasks\nfull-load\nfull-load-and-cdc\ncdc-only"]
+    end
+
+    subgraph Destinations["Target Systems"]
+        S3["S3 Data Lake\nParquet / GZIP"]
+        RS["Amazon Redshift\nAnalytics DW"]
+        AUR["Aurora MySQL\nHomogeneous Migration"]
+        KIN["Kinesis Data Streams\nReal-Time CDC"]
+    end
+
+    ORA --> SE
+    PG --> SE
+    MYSQL --> SE
+    SE --> RI
+    RI --> TASK
+    TASK --> TE
+    TE --> S3
+    TE --> RS
+    TE --> AUR
+    TE --> KIN
+```
+
 ## Features
 
 | Feature | Default | Gate variable |

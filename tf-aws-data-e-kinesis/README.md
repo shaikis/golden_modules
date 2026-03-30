@@ -76,6 +76,80 @@ CloudWatch Alarms ──► SNS Topic ──► PagerDuty / Slack / Email
 
 ---
 
+## Architecture
+
+```mermaid
+graph TD
+    subgraph Producers["Data Producers"]
+        P1[IoT / Web / Mobile]
+        P2[CDC via DMS]
+        P3[Lambda / API GW]
+    end
+
+    subgraph KDS["Kinesis Data Streams"]
+        S1[events\nON_DEMAND · KMS]
+        S2[orders\n4 shards · 168h ret.]
+        S3[clickstream\n8 shards · 48h ret.]
+    end
+
+    subgraph EFO["Enhanced Fan-Out Consumers"]
+        C1[orders-analytics-efo\n2 MB/s dedicated]
+        C2[fraud-detection-efo\n2 MB/s dedicated]
+    end
+
+    subgraph Firehose["Kinesis Firehose Delivery Streams"]
+        FH1[events → S3\nGZIP · dyn. partition · Lambda xform]
+        FH2[orders → Redshift\nS3 backup on failure]
+        FH3[logs → Splunk\nHEC endpoint]
+    end
+
+    subgraph Analytics["Kinesis Data Analytics v2 (Flink)"]
+        FA[clickstream-processor\nFlink 1.18 · para=4 · auto-scale]
+    end
+
+    subgraph Sinks["Destinations"]
+        LAKE[(S3 Data Lake\nHive-partitioned)]
+        DWH[(Redshift\nData Warehouse)]
+        SIEM[Splunk SIEM]
+        SNS2[SNS / DynamoDB\nFraud alerts]
+    end
+
+    subgraph Ops["Operations"]
+        CW[CloudWatch Alarms]
+        SNS[SNS Topic]
+        PD[PagerDuty / Slack]
+    end
+
+    P1 -->|PutRecord / PutRecords| S1
+    P1 -->|PutRecord / PutRecords| S3
+    P2 -->|CDC events| S2
+    P3 -->|PutRecords batched| S1
+
+    S1 -->|source stream| FH1
+    S2 -->|source stream| FH2
+    S2 --> C1
+    S2 --> C2
+    S3 -->|source stream| FA
+
+    FH1 --> LAKE
+    FH2 --> DWH
+    FH3 --> SIEM
+    FA --> SNS2
+    FA --> LAKE
+
+    C1 -->|SubscribeToShard| FA
+    C2 -->|SubscribeToShard| SNS2
+
+    S1 --> CW
+    S2 --> CW
+    S3 --> CW
+    FH1 --> CW
+    CW --> SNS
+    SNS --> PD
+```
+
+---
+
 ## Module Structure
 
 ```

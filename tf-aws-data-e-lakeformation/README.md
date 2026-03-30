@@ -352,6 +352,76 @@ module "lakeformation" {
 }
 ```
 
+## Architecture
+
+```mermaid
+graph TD
+    subgraph S3["S3 Data Lake Zones"]
+        RAW[(Bronze / Raw\ns3:::datalake-raw)]
+        PROC[(Silver / Processed\ns3:::datalake-silver)]
+        GOLD[(Gold / Analytics\ns3:::datalake-gold)]
+    end
+
+    subgraph GlueCatalog["AWS Glue Data Catalog"]
+        DB1[raw_db]
+        DB2[processed_db]
+        DB3[finance_db]
+        T1[tables / views]
+    end
+
+    subgraph LakeFormation["Lake Formation Control Plane"]
+        SETTINGS[Data Lake Settings\nadmins · default perms]
+        LOCS[Resource Registration\nS3 location ARNs]
+        TAGS[LF-Tags\ndept · sensitivity · env]
+        PERMS[Fine-Grained Permissions\nDB · Table · Column · Row]
+        FILTERS[Data Cell Filters\nrow-level · column-level]
+        GOV[LF-Tag Assignments\ngoverned tables]
+    end
+
+    subgraph Principals["IAM Principals"]
+        ADMIN[DataLakeAdmin role]
+        ENG[Engineer role]
+        ANALYST[Analyst role]
+        XACCT[Cross-account role]
+    end
+
+    subgraph Consumers["Query Engines"]
+        ATHENA[Amazon Athena]
+        EMR[Amazon EMR]
+        SPECTRUM[Redshift Spectrum]
+        GLUE_JOB[Glue ETL Jobs]
+    end
+
+    RAW --> LOCS
+    PROC --> LOCS
+    GOLD --> LOCS
+    LOCS --> SETTINGS
+
+    DB1 --> GlueCatalog
+    DB2 --> GlueCatalog
+    DB3 --> GlueCatalog
+
+    SETTINGS --> TAGS
+    TAGS --> GOV
+    GOV --> T1
+
+    PERMS -->|grant SELECT / DESCRIBE| ANALYST
+    PERMS -->|grant CREATE / ALTER / DROP| ENG
+    PERMS -->|grant ALL + grant option| ADMIN
+    PERMS -->|cross-account SELECT| XACCT
+    FILTERS -->|row + column security| ANALYST
+
+    ADMIN -->|governs| LakeFormation
+    ENG -->|reads / writes| Consumers
+    ANALYST -->|queries filtered view| ATHENA
+    ANALYST -->|queries filtered view| SPECTRUM
+
+    GlueCatalog --> ATHENA
+    GlueCatalog --> EMR
+    GlueCatalog --> SPECTRUM
+    GlueCatalog --> GLUE_JOB
+```
+
 ## Inputs
 
 | Name | Description | Type | Default | Required |

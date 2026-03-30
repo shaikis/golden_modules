@@ -14,6 +14,37 @@ Terraform module for **AWS Bedrock Guardrails** — a standalone content safety 
 | **Grounding Check** | Detect RAG hallucinations — block responses not grounded in retrieved context |
 | **Versioning** | Publish immutable version snapshots for safe rollouts |
 
+## Architecture
+
+```mermaid
+graph TB
+    subgraph Guardrail["AWS Bedrock Guardrail"]
+        style Guardrail fill:#FF9900,color:#232F3E
+        TP["Topic Policy\n(DENY specific topics)"]
+        CP["Content Filters\nHATE / VIOLENCE / INSULTS\nMISCONDUCT / PROMPT_ATTACK"]
+        WP["Word Policy\nProfanity list + custom words"]
+        PII["Sensitive Info Policy\nPII Redact / Block\n+ Custom Regex"]
+        GC["Contextual Grounding\nRAG hallucination check\n(GROUNDING + RELEVANCE)"]
+        VER["Guardrail Version\n(immutable snapshot)"]
+    end
+
+    INPUT["User Input\n(prompt)"]
+    MODEL["Bedrock Model\n(Claude, Titan…)"]
+    OUTPUT["Model Response"]
+    BLOCKED_IN["Blocked Input Message"]
+    BLOCKED_OUT["Blocked Output Message"]
+    KMS["KMS Key\n(optional encryption)"]
+
+    INPUT --> TP & CP & WP & PII
+    TP & CP & WP & PII -- "blocked" --> BLOCKED_IN
+    TP & CP & WP & PII -- "allowed" --> MODEL
+    MODEL --> GC
+    GC -- "not grounded" --> BLOCKED_OUT
+    GC -- "grounded" --> OUTPUT
+    KMS --> Guardrail
+    Guardrail --> VER
+```
+
 ## Versioning
 
 Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.

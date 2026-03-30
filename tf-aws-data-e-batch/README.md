@@ -2,6 +2,38 @@
 
 Production-grade Terraform module for AWS Batch. Supports managed and unmanaged compute environments (EC2, Spot, Fargate, Fargate Spot, EKS), job queues with priority ordering, job definitions (container, multi-node), fair-share scheduling policies, CloudWatch alarms, and full IAM role management.
 
+## Architecture
+
+```mermaid
+graph LR
+    subgraph Sources["Job Inputs"]
+        S3IN["S3 Buckets\nInput Data"]
+        ECR["ECR\nContainer Images"]
+        SF["Step Functions\nOrchestrator"]
+    end
+
+    subgraph Processing["Processing (this module)"]
+        CE["Compute Environments\nFargate Spot · EC2 Spot · EC2 On-Demand"]
+        JQ["Job Queues\nhigh-priority · normal · low-priority\nFair-Share Scheduling"]
+        JD["Job Definitions\nETL · ML Training · Data Quality\nReport Generation · GPU Inference"]
+        SCHED["Scheduling Policies\nWeighted Fair-Share"]
+    end
+
+    subgraph Destinations["Job Outputs"]
+        S3OUT["S3 Output Buckets\nETL Results · Reports\nML Models · Predictions"]
+        CW["CloudWatch Alarms\nPending · Failed Jobs"]
+    end
+
+    ECR --> JD
+    S3IN --> JD
+    SF --> JQ
+    SCHED --> JQ
+    JQ --> CE
+    JD --> JQ
+    CE --> S3OUT
+    CE --> CW
+```
+
 ## Features
 
 - Map-driven `for_each` on all primary resources (no `count`)

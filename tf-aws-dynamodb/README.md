@@ -4,6 +4,55 @@ Production-grade Terraform module for AWS DynamoDB — tables, global tables, GS
 
 ---
 
+## Architecture
+
+```mermaid
+graph TB
+    subgraph Table["DynamoDB Table"]
+        style Table fill:#FF9900,color:#232F3E
+        HK["Hash Key (PK)"]
+        RK["Range Key (SK)"]
+        LSI["Local Secondary\nIndexes (LSI)"]
+        GSI["Global Secondary\nIndexes (GSI)"]
+        SSE["SSE-KMS\nEncryption"]
+        PITR["Point-in-Time\nRecovery (PITR)"]
+        TTL["TTL\nAuto-expiry"]
+    end
+
+    subgraph Streaming["Change Data Capture"]
+        STR["DynamoDB Streams\n(NEW_AND_OLD_IMAGES)"]
+        KDS["Kinesis Data Streams\n(direct integration)"]
+    end
+
+    subgraph Scaling["Capacity Management"]
+        style Scaling fill:#232F3E,color:#FFFFFF
+        AS["App Auto Scaling\n(read + write)"]
+        PPR["PAY_PER_REQUEST\n(on-demand)"]
+    end
+
+    subgraph Ops["Observability & Backup"]
+        CW["CloudWatch Alarms\nThrottle / Latency\nReplication Lag"]
+        CI["Contributor Insights"]
+        BV["AWS Backup Vault\n(WORM lock)"]
+        BVCR["Cross-Region\nVault Copy"]
+    end
+
+    subgraph IAM["Fine-Grained IAM"]
+        style IAM fill:#232F3E,color:#FFFFFF
+        RO["Read-Only Role"]
+        RW["Read-Write Role"]
+        SC["Stream Consumer Role"]
+    end
+
+    Table --> STR & KDS
+    Table --> AS & PPR
+    Table --> CW & CI
+    Table --> BV --> BVCR
+    IAM --> Table
+    KDS --> LMB["Lambda\nProcessor"]
+    STR --> LMB
+```
+
 ## Architecture Diagram
 
 ```

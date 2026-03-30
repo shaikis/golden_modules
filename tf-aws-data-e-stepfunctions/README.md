@@ -358,6 +358,65 @@ module "sfn" {
 | `alarm_arns` | Map of alarm name => ARN |
 | `log_group_arns` | Map of key => log group ARN |
 
+## Architecture
+
+```mermaid
+graph TD
+    subgraph Triggers["Triggers"]
+        EB["EventBridge Rule\n(schedule / event pattern)"]
+        API["API Gateway\n(synchronous invoke)"]
+        LAMBDA_T["Lambda\n(StartExecution SDK call)"]
+    end
+
+    subgraph SFN["Step Functions (aws_sfn_state_machine)"]
+        SM["State Machine\n(STANDARD or EXPRESS)"]
+
+        subgraph Tasks["Task States"]
+            GLUE["Glue Job / Crawler\n(ETL)"]
+            LAMBDA_S["Lambda Function\n(transform / validate)"]
+            ECS["ECS Task\n(containerised workload)"]
+            SM_TRAIN["SageMaker Training\n(ML pipeline)"]
+            DDB["DynamoDB\n(state tracking)"]
+            SNS_S["SNS\n(notifications)"]
+            SQS_S["SQS\n(callback token)"]
+        end
+
+        subgraph Control["Control Flow"]
+            CHOICE["Choice State\n(branch logic)"]
+            PARALLEL["Parallel / Map State\n(fan-out)"]
+            WAIT["Wait State\n(polling loop)"]
+            ACTIVITY["Activity\n(human approval gate)"]
+        end
+    end
+
+    subgraph Observability["Observability"]
+        CWL["CloudWatch Logs\n(structured execution logs)"]
+        XRAY["X-Ray\n(distributed tracing)"]
+        ALARM["CloudWatch Alarms\n(failures / timeouts / p99 latency)"]
+    end
+
+    EB --> SM
+    API --> SM
+    LAMBDA_T --> SM
+    SM --> GLUE
+    SM --> LAMBDA_S
+    SM --> ECS
+    SM --> SM_TRAIN
+    SM --> DDB
+    SM --> SNS_S
+    SM --> SQS_S
+    SM --> CHOICE
+    SM --> PARALLEL
+    SM --> WAIT
+    SM --> ACTIVITY
+    SM --> CWL
+    SM --> XRAY
+    ALARM --> SM
+
+    IAM["IAM Role\n(execution permissions)"] --> SM
+    NESTED["Child State Machine\n(nested workflow)"] --> SM
+```
+
 ## Requirements
 
 | Name | Version |

@@ -19,6 +19,39 @@ This module can manage:
 - Optional value enforcement for each required tag
 - Optional scoping by AWS Config resource types
 
+## Architecture
+
+```mermaid
+graph TB
+    subgraph Config["AWS Config"]
+        style Config fill:#FF9900,color:#232F3E
+        REC["Config Recorder\n(optional — create or reuse)"]
+        DC["Delivery Channel\n(S3 bucket)"]
+        RULE["Config Rule\nREQUIRED_TAGS\n(up to 6 tags)"]
+        REC --> DC
+        REC --> RULE
+    end
+
+    subgraph IAM["IAM (optional)"]
+        style IAM fill:#232F3E,color:#FFFFFF
+        ROLE["Config IAM Role\n(AWSConfigRole policy)"]
+    end
+
+    subgraph Notifications["Notifications (optional)"]
+        EB["EventBridge Rule\nConfig Rules Compliance Change"]
+        SNS["SNS Topic\n(KMS-encrypted)"]
+        EB --> SNS
+    end
+
+    RESOURCES["AWS Resources\n(EC2, RDS, EFS, S3…)"]
+    S3["S3 Bucket\n(config snapshots)"]
+
+    ROLE --> REC
+    RULE -- "evaluates" --> RESOURCES
+    RULE -- "compliance change" --> EB
+    DC --> S3
+```
+
 ## Versioning
 
 Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0` so deployments stay predictable.

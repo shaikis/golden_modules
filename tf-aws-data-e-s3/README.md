@@ -30,6 +30,43 @@ Terraform module for AWS S3 with security-hardened defaults.
 | Access logging | Opt-in |
 | Object Lock | Opt-in |
 
+## Architecture
+
+```mermaid
+graph TD
+    subgraph Bucket["S3 Bucket (aws_s3_bucket)"]
+        UPLOAD["Object PUT / GET"] --> BUCKET["S3 Bucket\n(KMS-encrypted, versioned)"]
+        BUCKET --> LOCK["Object Lock\n(WORM, opt-in)"]
+        BUCKET --> LIFECYCLE["Lifecycle Rules\n(transition → IA → Glacier → expire)"]
+        BUCKET --> INTELL["Intelligent-Tiering\n(auto cost optimisation)"]
+    end
+
+    subgraph Security["Security Controls"]
+        POLICY["Bucket Policy\n(deny HTTP, require TLS 1.2)"]
+        PAB["Public Access Block\n(all 4 settings)"]
+        KMS["KMS Key\n(SSE-KMS + bucket key)"]
+        POLICY --> BUCKET
+        PAB --> BUCKET
+        KMS --> BUCKET
+    end
+
+    subgraph Notifications["Event Notifications (aws_s3_bucket_notification)"]
+        BUCKET -->|s3:ObjectCreated| LAMBDA["Lambda Function"]
+        BUCKET -->|s3:ObjectCreated| SQS["SQS Queue"]
+        BUCKET -->|s3:ObjectRemoved| SNS["SNS Topic"]
+    end
+
+    subgraph Replication["Cross-Region Replication (opt-in)"]
+        BUCKET -->|async replication| DR_BUCKET["DR S3 Bucket\n(secondary region)"]
+    end
+
+    subgraph Logging["Access Logging"]
+        BUCKET -->|access logs| LOG_BUCKET["Log Bucket\n(aws_s3_bucket_logging)"]
+    end
+
+    IAM["IAM Role\n(replication)"] --> Replication
+```
+
 ## Versioning
 
 Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.

@@ -278,6 +278,91 @@ For multi-region DR, deploy an MSK cluster in each region and run MirrorMaker 2 
 
 ---
 
+## Architecture
+
+```mermaid
+graph TD
+    subgraph Producers["Kafka Producers"]
+        APP1[Microservice / App]
+        DEB[Debezium CDC\nMSK Connect]
+        IOT[IoT Device Fleet]
+    end
+
+    subgraph MSKProvisioned["MSK Provisioned Clusters"]
+        subgraph EventsCluster["events cluster\nkafka.m5.xlarge · 3 brokers"]
+            B1[Broker 1\nAZ-a]
+            B2[Broker 2\nAZ-b]
+            B3[Broker 3\nAZ-c]
+        end
+        subgraph AnalyticsCluster["analytics cluster\nkafka.m5.large · 3 brokers"]
+            B4[Broker 1]
+            B5[Broker 2]
+            B6[Broker 3]
+        end
+    end
+
+    subgraph MSKServerless["MSK Serverless"]
+        SL[dev-streams\nauto-scale · pay-per-GB]
+    end
+
+    subgraph Auth["Authentication"]
+        IAM_AUTH[SASL/IAM\nno credentials stored]
+        SCRAM[SASL/SCRAM\nSecrets Manager]
+        MTLS[mTLS\nACM PCA certs]
+    end
+
+    subgraph Consumers["Kafka Consumers"]
+        FLINK[Apache Flink\nKDA v2]
+        SPARK[Spark Structured\nStreaming]
+        LAMBDA_C[Lambda\nESM consumer]
+        MM2[MirrorMaker 2\nDR replication]
+    end
+
+    subgraph SchemaRegistry["Glue Schema Registry"]
+        SCHEMA[Schema enforcement\nAvro / JSON / Protobuf]
+    end
+
+    subgraph Sinks["Downstream Sinks"]
+        S3L[(S3 Data Lake\ntiered storage offload)]
+        OS[OpenSearch\nreal-time search]
+        DW[(Redshift\nData Warehouse)]
+    end
+
+    subgraph Ops["Observability"]
+        CW[CloudWatch Alarms\n8 alarms per cluster]
+        PROM[Prometheus\nJMX + Node exporters]
+        SNS3[SNS Topic]
+    end
+
+    APP1 -->|SASL/IAM| IAM_AUTH
+    DEB -->|SASL/SCRAM| SCRAM
+    IOT -->|mTLS| MTLS
+
+    IAM_AUTH --> EventsCluster
+    SCRAM --> EventsCluster
+    MTLS --> AnalyticsCluster
+
+    EventsCluster -->|tiered storage| S3L
+    EventsCluster --> FLINK
+    EventsCluster --> MM2
+    AnalyticsCluster --> SPARK
+    AnalyticsCluster --> LAMBDA_C
+
+    FLINK --> OS
+    SPARK --> DW
+    LAMBDA_C --> S3L
+
+    APP1 -->|GetSchema| SCHEMA
+    SCHEMA --> EventsCluster
+
+    EventsCluster --> CW
+    AnalyticsCluster --> CW
+    EventsCluster --> PROM
+    CW --> SNS3
+```
+
+---
+
 ## CloudWatch Alarms
 
 When `create_alarms = true`, the following alarms are created per cluster:

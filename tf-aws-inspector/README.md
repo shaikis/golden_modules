@@ -15,6 +15,41 @@ Terraform module for **AWS Inspector v2** — continuous vulnerability managemen
 | **Findings → S3** | Native Inspector findings export to S3 |
 | **Suppression Rules** | Filter false positives by CVE ID, resource type, or severity |
 
+## Architecture
+
+```mermaid
+graph TB
+    subgraph Targets["Scan Targets"]
+        EC2["EC2 Instances\n(via SSM Agent)"]
+        ECR["ECR Container Images\n(on-push + continuous)"]
+        LAM["Lambda Functions\n(dependency + code)"]
+    end
+
+    subgraph Inspector["AWS Inspector v2"]
+        style Inspector fill:#FF9900,color:#232F3E
+        ENB["Inspector Enabler\n(resource types)"]
+        FIND["Findings Engine\nCVE / Network\nReachability"]
+        SUPP["Suppression Rules\n(false positive filter)"]
+        DEL["Delegated Admin\n(Organizations)"]
+        MEM["Member Account\nAssociations"]
+    end
+
+    subgraph Notifications["Findings Routing"]
+        style Notifications fill:#232F3E,color:#FFFFFF
+        EB["EventBridge Rule\nHIGH / CRITICAL filter"]
+        SNS["SNS Topic\n(PagerDuty / Slack)"]
+        S3["S3 Findings Export\n(KMS-encrypted)"]
+    end
+
+    EC2 & ECR & LAM --> ENB
+    ENB --> FIND
+    FIND --> SUPP
+    SUPP --> EB --> SNS
+    FIND --> S3
+    DEL --> MEM
+    MEM --> ENB
+```
+
 ## Versioning
 
 Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.

@@ -16,6 +16,46 @@ Terraform module for **Site-to-Site VPN** (Customer Gateways + VPN Connections) 
 | Lifecycle safety | `ignore_changes` on pre-shared keys, `CreatedDate` tag |
 | Full tagging | Name, Environment, Project, Owner, CostCenter, ManagedBy |
 
+## Architecture
+
+```mermaid
+graph TB
+    subgraph SiteToSite["Site-to-Site VPN"]
+        style SiteToSite fill:#FF9900,color:#232F3E
+        CGW["Customer Gateways\n(on-prem / DC)"]
+        VPN["VPN Connections\nIKEv2 / BGP or Static\nTunnel 1 + Tunnel 2"]
+        TGW["Transit Gateway\n(TGW attachment)"]
+        VGW["Virtual Private Gateway\n(VGW — non-TGW)"]
+        SROUTE["Static VPN Routes"]
+
+        CGW --> VPN
+        VPN --> TGW
+        VPN --> VGW
+        VPN --> SROUTE
+    end
+
+    subgraph ClientVPN["Client VPN"]
+        style ClientVPN fill:#232F3E,color:#FFFFFF
+        CVPN["Client VPN Endpoint\n(split-tunnel)"]
+        MTLS["mTLS Auth\n(ACM cert)"]
+        SAML["SAML / SSO Auth\n(IAM Identity Center)"]
+        ASSOC["Network Associations\n(subnets)"]
+        AUTHRULE["Authorization Rules\n(CIDR / group)"]
+        CWL["CloudWatch Logs\nconnection log stream"]
+
+        MTLS & SAML --> CVPN
+        CVPN --> ASSOC & AUTHRULE & CWL
+    end
+
+    CORP["Corporate Users /\nOn-Premises Network"]
+    VPC["VPC Resources"]
+
+    CORP --> CGW
+    CORP --> CVPN
+    TGW & VGW --> VPC
+    ASSOC --> VPC
+```
+
 ## Versioning
 
 Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.

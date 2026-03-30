@@ -11,34 +11,37 @@ Set `create_serverless = false` and `create_domain = true` to switch to a manage
 
 ## Architecture Overview
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                     tf-aws-opensearch module                        │
-│                                                                     │
-│  Mode A — Serverless (default)        Mode B — Managed Domain       │
-│  ─────────────────────────────        ──────────────────────────    │
-│                                                                     │
-│  ┌─────────────────────────┐          ┌────────────────────────┐   │
-│  │  Encryption Policy      │          │  aws_opensearch_domain  │   │
-│  │  (AWS-managed / CMK)    │          │  ┌──────────────────┐  │   │
-│  └──────────┬──────────────┘          │  │  Cluster Config  │  │   │
-│             │                         │  │  EBS Options     │  │   │
-│  ┌──────────▼──────────────┐          │  │  VPC Options     │  │   │
-│  │  Network Policy         │          │  │  Encrypt-at-rest │  │   │
-│  │  PUBLIC or VPC endpoint │          │  │  Node-to-Node    │  │   │
-│  └──────────┬──────────────┘          │  │  TLS Policy      │  │   │
-│             │                         │  └──────────────────┘  │   │
-│  ┌──────────▼──────────────┐          └────────────┬───────────┘   │
-│  │  Serverless Collection  │                       │               │
-│  │  VECTORSEARCH / SEARCH  │          ┌────────────▼───────────┐   │
-│  │  TIMESERIES             │          │  CloudWatch Log Groups  │   │
-│  └──────────┬──────────────┘          │  index-slow             │   │
-│             │                         │  search-slow            │   │
-│  ┌──────────▼──────────────┐          │  application            │   │
-│  │  Data Access Policy     │          └────────────────────────┘   │
-│  │  (IAM principals)       │                                        │
-│  └─────────────────────────┘                                        │
-└─────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph ModeA["Mode A — Serverless (default)"]
+        style ModeA fill:#FF9900,color:#232F3E
+        EP["Encryption Policy\n(AWS-managed / CMK)"]
+        NP["Network Policy\n(PUBLIC or VPC endpoint)"]
+        COL["Serverless Collection\nVECTORSEARCH / SEARCH\nTIMESERIES"]
+        DAP["Data Access Policy\n(IAM principals)"]
+        VPCE["VPC Endpoint\n(when network=VPC)"]
+
+        EP --> NP --> COL --> DAP
+        VPCE --> NP
+    end
+
+    subgraph ModeB["Mode B — Managed Domain"]
+        style ModeB fill:#232F3E,color:#FFFFFF
+        DOM["aws_opensearch_domain\nCluster Config + EBS\nEncrypt-at-rest\nNode-to-Node TLS"]
+        CWL["CloudWatch Log Groups\nindex-slow\nsearch-slow\napplication"]
+        ACP["Domain Access Policy"]
+
+        DOM --> CWL
+        ACP --> DOM
+    end
+
+    KMS["KMS Key\n(optional CMK)"]
+    PRIN["IAM Principals\n(Lambda, apps)"]
+
+    KMS --> EP
+    KMS --> DOM
+    PRIN --> DAP
+    PRIN --> ACP
 ```
 
 ---

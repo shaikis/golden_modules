@@ -42,6 +42,42 @@ One Glue ETL job + auto-created IAM role. Nothing else.
 
 ---
 
+## Architecture
+
+```mermaid
+graph LR
+    subgraph Sources["Data Sources"]
+        S3RAW["S3 Raw Zone\nBronze Layer"]
+        RDS["RDS / JDBC\nSource Databases"]
+        KAFKA["Kafka / MSK\nCDC Streams"]
+    end
+
+    subgraph Processing["Processing (this module)"]
+        CRAWL["Glue Crawlers\nS3 · JDBC · Delta\nCatalog Discovery"]
+        CAT["Glue Data Catalog\nDatabases & Tables\nSchema Registry"]
+        JOBS["Glue ETL Jobs\nglueetl · gluestreaming\npythonshell · glueray"]
+        WF["Workflows & Triggers\nScheduled · Conditional\nOrchestration"]
+        CONN["Connections\nJDBC · Kafka · Network"]
+        SEC["Security Config\nSSE-KMS Encryption"]
+    end
+
+    subgraph Destinations["Destinations"]
+        PROC["S3 Processed Zone\nSilver — Parquet / Delta"]
+        ANAL["S3 Analytics Zone\nGold — Aggregated"]
+    end
+
+    S3RAW --> CRAWL
+    RDS --> CONN
+    KAFKA --> CONN
+    CONN --> JOBS
+    CRAWL --> CAT
+    CAT --> JOBS
+    SEC --> JOBS
+    WF --> JOBS
+    JOBS --> PROC
+    JOBS --> ANAL
+```
+
 ## ETL Pipeline Architecture
 
 ```

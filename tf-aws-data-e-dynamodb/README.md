@@ -4,6 +4,42 @@ Production-grade Terraform module for AWS DynamoDB — tables, global tables, GS
 
 ---
 
+## Architecture
+
+```mermaid
+graph LR
+    subgraph Sources["Data Sources"]
+        APP["Application\nServices"]
+        BATCH["Batch Writes\nSDK / CLI"]
+    end
+
+    subgraph Processing["Processing (this module)"]
+        TBL["DynamoDB Tables\nHash Key · Range Key\nGSI · LSI · TTL\nSSE-KMS · PITR"]
+        GTBL["Global Tables\nus-east-1 · eu-west-1\nap-southeast-1\nActive-Active"]
+        AS["Auto Scaling\nProvisioned R/W Capacity"]
+        CI["Contributor Insights\nCloudWatch Alarms"]
+    end
+
+    subgraph Destinations["Downstream"]
+        STRM["DynamoDB Streams\nNEW_AND_OLD_IMAGES"]
+        KIN["Kinesis Data Streams\nCDC Destination"]
+        BACK["AWS Backup Vault\nWORM · Cross-Region"]
+        LAM["Lambda\nEvent Processor"]
+        FH["Kinesis Firehose\n→ S3 / Redshift"]
+    end
+
+    APP --> TBL
+    BATCH --> TBL
+    TBL --> GTBL
+    TBL --> STRM
+    TBL --> KIN
+    TBL --> BACK
+    TBL --> AS
+    TBL --> CI
+    STRM --> LAM
+    KIN --> FH
+```
+
 ## Architecture Diagram
 
 ```

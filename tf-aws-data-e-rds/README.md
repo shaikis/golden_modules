@@ -502,6 +502,36 @@ Each example folder contains:
 - `staging.tfvars` — staging (shared VPC, backup replication)
 - `prod.tfvars` — prod (dedicated VPC, full HA + DR)
 
+## Architecture
+
+```mermaid
+graph TD
+    subgraph Primary["Primary Region (us-east-1)"]
+        APP["Application / Lambda"] -->|port 3306/5432/1521/1433| RDS["aws_db_instance\n(Primary RDS)"]
+        RDS -->|Enhanced Monitoring| CWL["CloudWatch Logs"]
+        RDS -->|Performance Insights| PI["Performance Insights"]
+        RDS -->|Secrets Manager| SM["AWS Secrets Manager\n(master password)"]
+        RDS -->|KMS| KMS["KMS Key"]
+        RDS -->|Event Subscription| SNS["SNS Topic\n(event notifications)"]
+        PG["Parameter Group"] --> RDS
+        OG["Option Group\n(Oracle/SQL Server)"] --> RDS
+        RDS -->|Automated Backups| BACKUP["Automated Backups\n(0-35 days)"]
+    end
+
+    subgraph DR["DR Region (us-west-2)"]
+        BACKUP -->|Pattern 1: Backup Replication| DR_BACKUP["DR Backup Copy\n(aws_db_instance_automated_backups_replication)"]
+        RDS -->|Pattern 2: Live Replica| REPLICA["aws_db_instance\n(Read Replica)"]
+        REPLICA -->|reads only| DR_APP["DR Application\n(read offload)"]
+    end
+
+    subgraph Aurora["Aurora Global Database (alternative)"]
+        GLOBAL["aws_rds_global_cluster"] --> PRI_CLUSTER["Primary Aurora Cluster\n(writer + readers)"]
+        GLOBAL --> SEC_CLUSTER["Secondary Aurora Cluster\n(DR region, ~1min RTO)"]
+    end
+
+    IAM["IAM Role\n(Enhanced Monitoring)"] --> RDS
+```
+
 ## Versioning
 
 Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.

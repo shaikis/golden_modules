@@ -655,6 +655,59 @@ terraform apply -var-file=prod.tfvars
 
 ---
 
+## Architecture
+
+```mermaid
+graph TD
+    subgraph Ingestion["Data Ingestion"]
+        S3["S3 Data Lake\n(raw / curated)"]
+        FIREHOSE["Kinesis Data Firehose\n(streaming sink)"]
+        AURORA["Aurora / RDS\n(federated source)"]
+    end
+
+    subgraph Redshift["Redshift Cluster (aws_redshift_cluster)"]
+        COPY["COPY Command\n(batch load from S3)"]
+        SPECTRUM["Redshift Spectrum\n(external schema → Glue Catalog)"]
+        QUERIES["SQL Queries\n(data warehouse)"]
+        UNLOAD["UNLOAD Command\n(export to S3)"]
+        FEDERATED["Federated Query\n(live RDS/Aurora data)"]
+    end
+
+    subgraph Serverless["Redshift Serverless (optional)"]
+        NS["Namespace\n(aws_redshiftserverless_namespace)"]
+        WG["Workgroup\n(aws_redshiftserverless_workgroup)"]
+        NS --> WG
+    end
+
+    subgraph DataSharing["Data Sharing"]
+        PRODUCER["Producer Cluster\n(data_share_authorizations)"]
+        CONSUMER["Consumer Account\n(data_share_consumer_associations)"]
+        PRODUCER -->|live data, no copy| CONSUMER
+    end
+
+    subgraph Ops["Operations"]
+        SCHED["Scheduled Actions\n(pause / resume / resize)"]
+        SNAP["Snapshot Schedules\n(automated + cross-region copy)"]
+        ALARMS["CloudWatch Alarms\n(CPU / connections / latency)"]
+    end
+
+    S3 -->|COPY Parquet/CSV| COPY
+    FIREHOSE -->|streaming → S3 → COPY| S3
+    AURORA -->|FEDERATED QUERY| FEDERATED
+    COPY --> QUERIES
+    SPECTRUM --> QUERIES
+    FEDERATED --> QUERIES
+    QUERIES -->|UNLOAD Parquet| UNLOAD
+    UNLOAD --> S3
+
+    GLUE["Glue Data Catalog"] --> SPECTRUM
+    IAM["IAM Role\n(S3 + Glue + Athena)"] --> Redshift
+
+    SCHED --> Redshift
+    SNAP --> Redshift
+    ALARMS --> Redshift
+```
+
 ## License
 
 MIT
