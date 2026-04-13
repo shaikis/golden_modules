@@ -18,6 +18,8 @@ flowchart TB
 ## Scenario Covered
 
 - `1:1` replication
+- Regional EFS for multi-AZ when `availability_zone_name = null`
+- One Zone EFS for single-AZ when `availability_zone_name` is set
 - same-region replication if destination stays in the same Region
 - cross-region replication if destination region differs
 

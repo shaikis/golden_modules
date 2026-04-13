@@ -28,6 +28,7 @@ flowchart TB
 
 ## Example Notes
 
+- Both examples support Regional EFS for multi-AZ or One Zone EFS for single-AZ by changing `availability_zone_name`.
 - `basic` demonstrates a straightforward 1:1 pattern for a single module-managed source.
 - `complete` demonstrates a richer production-oriented 1:1 setup with access points and DR-related options.
 - `1:many` and `many:1` are not included as runnable examples because Amazon EFS replication does not support those topologies.

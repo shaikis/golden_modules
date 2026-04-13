@@ -26,7 +26,6 @@ variable "tags" {
   type    = map(string)
   default = {}
 }
-
 # Toggles
 variable "create" {
   type    = bool

@@ -22,6 +22,8 @@ flowchart TB
 ## Scenario Covered
 
 - production-oriented `1:1` replication
+- Regional EFS for multi-AZ production layouts when `availability_zone_name = null`
+- One Zone EFS for single-AZ deployments when `availability_zone_name` is set
 - cross-region DR replication
 - same module with mount, backup, lifecycle, and access-point configuration
 

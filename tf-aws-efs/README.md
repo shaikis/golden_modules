@@ -5,6 +5,8 @@ Terraform module for Amazon EFS with encrypted file systems, HA mount targets, a
 ## What This Module Supports
 
 - One module-managed EFS file system with mount targets and access points
+- Regional EFS for multi-AZ deployments
+- One Zone EFS for single-AZ deployments
 - Optional replication for that module-managed source
 - Additional replication configurations for external source file systems
 - Same-region replication
@@ -64,6 +66,17 @@ graph TB
     FS --> AP
 ```
 
+### Deployment Modes
+
+```mermaid
+flowchart LR
+    REG["Regional EFS<br/>availability_zone_name = null"] --> MAZ["Multi-AZ design"]
+    MAZ --> MTS["Mount targets in multiple subnets/AZs"]
+
+    ONE["One Zone EFS<br/>availability_zone_name = us-east-1a"] --> SAZ["Single-AZ design"]
+    SAZ --> SMT["Mount targets only in that AZ"]
+```
+
 ### Replication Capability Map
 
 ```mermaid
@@ -93,6 +106,30 @@ flowchart LR
 ```
 
 ## Usage
+
+### Multi-AZ Regional EFS
+
+```hcl
+module "efs" {
+  source = "git::https://github.com/your-org/golden_modules.git//tf-aws-efs?ref=v1.0.0"
+
+  name                   = "regional-shared-storage"
+  availability_zone_name = null
+  subnet_ids             = ["subnet-a", "subnet-b", "subnet-c"]
+}
+```
+
+### Single-AZ One Zone EFS
+
+```hcl
+module "efs" {
+  source = "git::https://github.com/your-org/golden_modules.git//tf-aws-efs?ref=v1.0.0"
+
+  name                   = "one-zone-storage"
+  availability_zone_name = "us-east-1a"
+  subnet_ids             = ["subnet-a"]
+}
+```
 
 ### Backward-Compatible Single Replication
 
@@ -149,6 +186,13 @@ module "efs" {
 | `replication_destination_kms_key_arn` | `string` | `null` | Legacy destination KMS key ARN for the default replication |
 | `replication_destination_availability_zone` | `string` | `null` | Legacy destination AZ for the default replication |
 | `replications` | `map(object)` | `{}` | Map of independent 1:1 replication pairs |
+
+## File System Mode Inputs
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `availability_zone_name` | `string` | `null` | `null` creates Regional EFS for multi-AZ use; setting an AZ creates One Zone EFS for single-AZ use |
+| `subnet_ids` | `list(string)` | `[]` | Mount target subnets; for multi-AZ use, provide one subnet per AZ |
 
 ## Replication Outputs
 
