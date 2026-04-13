@@ -5,7 +5,7 @@ variable "aws_region" {
 
 variable "name" {
   type    = string
-  default = "finwise"
+  default = "acme-internal"
 }
 
 variable "environment" {
@@ -15,15 +15,15 @@ variable "environment" {
 
 variable "project" {
   type    = string
-  default = "retail-invest"
+  default = "knowledge-assistant"
 }
 
 variable "owner" {
   type    = string
-  default = "product-ai"
+  default = "enterprise-platform"
 }
 
 variable "cost_center" {
   type    = string
-  default = "CC-FINRA-01"
+  default = "CC-SEC-01"
 }

@@ -13,8 +13,21 @@ provider "aws" { region = var.aws_region }
 
 module "kms" {
   source      = "../../../tf-aws-kms"
-  name        = "${var.name}-guardrail"
-  environment = var.environment
+  name_prefix = "${var.environment}/${var.name}"
+  tags = {
+    project     = var.project
+    owner       = var.owner
+    cost_center = var.cost_center
+    environment = var.environment
+  }
+  keys = {
+    guardrail = {
+      description = "KMS key for customer support Bedrock guardrail"
+      tags = {
+        workload = "customer-support-bot"
+      }
+    }
+  }
 }
 
 module "customer_support_guardrail" {
@@ -25,7 +38,7 @@ module "customer_support_guardrail" {
   project     = var.project
   owner       = var.owner
   cost_center = var.cost_center
-  kms_key_arn = module.kms.key_arn
+  kms_key_arn = module.kms.key_arns["guardrail"]
 
   description            = "Guardrail for e-commerce customer support chatbot"
   blocked_input_message  = "I'm sorry, I can't help with that request. For further assistance, please contact our support team at support@example.com or call 1-800-EXAMPLE."
@@ -55,12 +68,12 @@ module "customer_support_guardrail" {
 
   # Content safety — high bar for hate/insults, detect jailbreaks
   content_filters = [
-    { type = "HATE",          input_strength = "HIGH",   output_strength = "HIGH" },
-    { type = "INSULTS",       input_strength = "MEDIUM", output_strength = "HIGH" },
-    { type = "VIOLENCE",      input_strength = "MEDIUM", output_strength = "MEDIUM" },
-    { type = "SEXUAL",        input_strength = "HIGH",   output_strength = "HIGH" },
-    { type = "MISCONDUCT",    input_strength = "MEDIUM", output_strength = "MEDIUM" },
-    { type = "PROMPT_ATTACK", input_strength = "HIGH",   output_strength = "NONE" },
+    { type = "HATE", input_strength = "HIGH", output_strength = "HIGH" },
+    { type = "INSULTS", input_strength = "MEDIUM", output_strength = "HIGH" },
+    { type = "VIOLENCE", input_strength = "MEDIUM", output_strength = "MEDIUM" },
+    { type = "SEXUAL", input_strength = "HIGH", output_strength = "HIGH" },
+    { type = "MISCONDUCT", input_strength = "MEDIUM", output_strength = "MEDIUM" },
+    { type = "PROMPT_ATTACK", input_strength = "HIGH", output_strength = "NONE" },
   ]
 
   # Block profanity automatically
@@ -76,20 +89,20 @@ module "customer_support_guardrail" {
 
   # Anonymize PII — protect customer data in conversation logs
   pii_entities = [
-    { type = "EMAIL",                    action = "ANONYMIZE" },
-    { type = "PHONE",                    action = "ANONYMIZE" },
-    { type = "NAME",                     action = "ANONYMIZE" },
-    { type = "ADDRESS",                  action = "ANONYMIZE" },
+    { type = "EMAIL", action = "ANONYMIZE" },
+    { type = "PHONE", action = "ANONYMIZE" },
+    { type = "NAME", action = "ANONYMIZE" },
+    { type = "ADDRESS", action = "ANONYMIZE" },
     { type = "CREDIT_DEBIT_CARD_NUMBER", action = "BLOCK" },
-    { type = "CREDIT_DEBIT_CARD_CVV",    action = "BLOCK" },
+    { type = "CREDIT_DEBIT_CARD_CVV", action = "BLOCK" },
     { type = "CREDIT_DEBIT_CARD_EXPIRY", action = "BLOCK" },
     { type = "US_SOCIAL_SECURITY_NUMBER", action = "BLOCK" },
-    { type = "PASSWORD",                 action = "BLOCK" },
+    { type = "PASSWORD", action = "BLOCK" },
   ]
 
   create_version = true
 }
 
-output "guardrail_id"      { value = module.customer_support_guardrail.guardrail_id }
-output "guardrail_arn"     { value = module.customer_support_guardrail.guardrail_arn }
+output "guardrail_id" { value = module.customer_support_guardrail.guardrail_id }
+output "guardrail_arn" { value = module.customer_support_guardrail.guardrail_arn }
 output "guardrail_version" { value = module.customer_support_guardrail.guardrail_version }

@@ -15,8 +15,21 @@ provider "aws" { region = var.aws_region }
 
 module "kms" {
   source      = "../../../tf-aws-kms"
-  name        = "${var.name}-guardrail"
-  environment = var.environment
+  name_prefix = "${var.environment}/${var.name}"
+  tags = {
+    project     = var.project
+    owner       = var.owner
+    cost_center = var.cost_center
+    environment = var.environment
+  }
+  keys = {
+    guardrail = {
+      description = "KMS key for financial advisor Bedrock guardrail"
+      tags = {
+        workload = "financial-advisor-bot"
+      }
+    }
+  }
 }
 
 module "financial_advisor_guardrail" {
@@ -27,7 +40,7 @@ module "financial_advisor_guardrail" {
   project     = var.project
   owner       = var.owner
   cost_center = var.cost_center
-  kms_key_arn = module.kms.key_arn
+  kms_key_arn = module.kms.key_arns["guardrail"]
 
   description = "SEC/FINRA compliant guardrail for retail investor AI assistant"
 
@@ -77,12 +90,12 @@ module "financial_advisor_guardrail" {
 
   # Financial platform abuse prevention
   content_filters = [
-    { type = "HATE",          input_strength = "HIGH",   output_strength = "HIGH" },
-    { type = "INSULTS",       input_strength = "MEDIUM", output_strength = "HIGH" },
-    { type = "MISCONDUCT",    input_strength = "HIGH",   output_strength = "HIGH" },
-    { type = "VIOLENCE",      input_strength = "MEDIUM", output_strength = "HIGH" },
-    { type = "SEXUAL",        input_strength = "HIGH",   output_strength = "HIGH" },
-    { type = "PROMPT_ATTACK", input_strength = "HIGH",   output_strength = "NONE" },
+    { type = "HATE", input_strength = "HIGH", output_strength = "HIGH" },
+    { type = "INSULTS", input_strength = "MEDIUM", output_strength = "HIGH" },
+    { type = "MISCONDUCT", input_strength = "HIGH", output_strength = "HIGH" },
+    { type = "VIOLENCE", input_strength = "MEDIUM", output_strength = "HIGH" },
+    { type = "SEXUAL", input_strength = "HIGH", output_strength = "HIGH" },
+    { type = "PROMPT_ATTACK", input_strength = "HIGH", output_strength = "NONE" },
   ]
 
   managed_word_lists = ["PROFANITY"]
@@ -98,20 +111,20 @@ module "financial_advisor_guardrail" {
 
   # Financial PII — strict blocking of all account identifiers
   pii_entities = [
-    { type = "NAME",                          action = "ANONYMIZE" },
-    { type = "EMAIL",                         action = "ANONYMIZE" },
-    { type = "PHONE",                         action = "ANONYMIZE" },
-    { type = "ADDRESS",                       action = "ANONYMIZE" },
-    { type = "US_SOCIAL_SECURITY_NUMBER",     action = "BLOCK" },
-    { type = "US_BANK_ACCOUNT_NUMBER",        action = "BLOCK" },
-    { type = "US_BANK_ROUTING_NUMBER",        action = "BLOCK" },
-    { type = "CREDIT_DEBIT_CARD_NUMBER",      action = "BLOCK" },
-    { type = "CREDIT_DEBIT_CARD_CVV",         action = "BLOCK" },
-    { type = "CREDIT_DEBIT_CARD_EXPIRY",      action = "BLOCK" },
+    { type = "NAME", action = "ANONYMIZE" },
+    { type = "EMAIL", action = "ANONYMIZE" },
+    { type = "PHONE", action = "ANONYMIZE" },
+    { type = "ADDRESS", action = "ANONYMIZE" },
+    { type = "US_SOCIAL_SECURITY_NUMBER", action = "BLOCK" },
+    { type = "US_BANK_ACCOUNT_NUMBER", action = "BLOCK" },
+    { type = "US_BANK_ROUTING_NUMBER", action = "BLOCK" },
+    { type = "CREDIT_DEBIT_CARD_NUMBER", action = "BLOCK" },
+    { type = "CREDIT_DEBIT_CARD_CVV", action = "BLOCK" },
+    { type = "CREDIT_DEBIT_CARD_EXPIRY", action = "BLOCK" },
     { type = "INTERNATIONAL_BANK_ACCOUNT_NUMBER", action = "BLOCK" },
-    { type = "SWIFT_CODE",                    action = "BLOCK" },
-    { type = "PASSWORD",                      action = "BLOCK" },
-    { type = "PIN",                           action = "BLOCK" },
+    { type = "SWIFT_CODE", action = "BLOCK" },
+    { type = "PASSWORD", action = "BLOCK" },
+    { type = "PIN", action = "BLOCK" },
     { type = "US_INDIVIDUAL_TAX_IDENTIFICATION_NUMBER", action = "BLOCK" },
   ]
 
@@ -134,6 +147,6 @@ module "financial_advisor_guardrail" {
   create_version = true
 }
 
-output "guardrail_id"      { value = module.financial_advisor_guardrail.guardrail_id }
-output "guardrail_arn"     { value = module.financial_advisor_guardrail.guardrail_arn }
+output "guardrail_id" { value = module.financial_advisor_guardrail.guardrail_id }
+output "guardrail_arn" { value = module.financial_advisor_guardrail.guardrail_arn }
 output "guardrail_version" { value = module.financial_advisor_guardrail.guardrail_version }

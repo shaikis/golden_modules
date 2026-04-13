@@ -14,8 +14,21 @@ provider "aws" { region = var.aws_region }
 
 module "kms" {
   source      = "../../../tf-aws-kms"
-  name        = "${var.name}-guardrail"
-  environment = var.environment
+  name_prefix = "${var.environment}/${var.name}"
+  tags = {
+    project     = var.project
+    owner       = var.owner
+    cost_center = var.cost_center
+    environment = var.environment
+  }
+  keys = {
+    guardrail = {
+      description = "KMS key for healthcare Bedrock guardrail"
+      tags = {
+        workload = "healthcare-assistant"
+      }
+    }
+  }
 }
 
 module "healthcare_guardrail" {
@@ -26,7 +39,7 @@ module "healthcare_guardrail" {
   project     = var.project
   owner       = var.owner
   cost_center = var.cost_center
-  kms_key_arn = module.kms.key_arn
+  kms_key_arn = module.kms.key_arns["guardrail"]
 
   description = "Guardrail for hospital patient Q&A assistant — HIPAA compliant"
 
@@ -65,28 +78,28 @@ module "healthcare_guardrail" {
 
   # Strict content filtering for healthcare context
   content_filters = [
-    { type = "VIOLENCE",      input_strength = "HIGH",   output_strength = "HIGH" },
-    { type = "MISCONDUCT",    input_strength = "HIGH",   output_strength = "HIGH" },
-    { type = "HATE",          input_strength = "HIGH",   output_strength = "HIGH" },
-    { type = "INSULTS",       input_strength = "MEDIUM", output_strength = "HIGH" },
-    { type = "SEXUAL",        input_strength = "HIGH",   output_strength = "HIGH" },
-    { type = "PROMPT_ATTACK", input_strength = "HIGH",   output_strength = "NONE" },
+    { type = "VIOLENCE", input_strength = "HIGH", output_strength = "HIGH" },
+    { type = "MISCONDUCT", input_strength = "HIGH", output_strength = "HIGH" },
+    { type = "HATE", input_strength = "HIGH", output_strength = "HIGH" },
+    { type = "INSULTS", input_strength = "MEDIUM", output_strength = "HIGH" },
+    { type = "SEXUAL", input_strength = "HIGH", output_strength = "HIGH" },
+    { type = "PROMPT_ATTACK", input_strength = "HIGH", output_strength = "NONE" },
   ]
 
   managed_word_lists = ["PROFANITY"]
 
   # HIPAA PHI — block or anonymize all personal health identifiers
   pii_entities = [
-    { type = "NAME",                     action = "ANONYMIZE" },
-    { type = "ADDRESS",                  action = "ANONYMIZE" },
-    { type = "EMAIL",                    action = "ANONYMIZE" },
-    { type = "PHONE",                    action = "ANONYMIZE" },
-    { type = "AGE",                      action = "ANONYMIZE" },
-    { type = "DATE_TIME",                action = "ANONYMIZE" },
+    { type = "NAME", action = "ANONYMIZE" },
+    { type = "ADDRESS", action = "ANONYMIZE" },
+    { type = "EMAIL", action = "ANONYMIZE" },
+    { type = "PHONE", action = "ANONYMIZE" },
+    { type = "AGE", action = "ANONYMIZE" },
+    { type = "DATE_TIME", action = "ANONYMIZE" },
     { type = "US_SOCIAL_SECURITY_NUMBER", action = "BLOCK" },
-    { type = "PASSWORD",                 action = "BLOCK" },
-    { type = "USERNAME",                 action = "ANONYMIZE" },
-    { type = "IP_ADDRESS",               action = "BLOCK" },
+    { type = "PASSWORD", action = "BLOCK" },
+    { type = "USERNAME", action = "ANONYMIZE" },
+    { type = "IP_ADDRESS", action = "BLOCK" },
   ]
 
   # Custom regex — block medical record numbers (MRN) like MRN-123456
@@ -108,13 +121,13 @@ module "healthcare_guardrail" {
   # CRITICAL: Grounding check — all responses must be based on retrieved docs
   # This prevents hallucinated drug interactions or false diagnoses
   grounding_filter = {
-    grounding_threshold = 0.80  # Strict: 80% grounding confidence required
+    grounding_threshold = 0.80 # Strict: 80% grounding confidence required
     relevance_threshold = 0.75
   }
 
   create_version = true
 }
 
-output "guardrail_id"      { value = module.healthcare_guardrail.guardrail_id }
-output "guardrail_arn"     { value = module.healthcare_guardrail.guardrail_arn }
+output "guardrail_id" { value = module.healthcare_guardrail.guardrail_id }
+output "guardrail_arn" { value = module.healthcare_guardrail.guardrail_arn }
 output "guardrail_version" { value = module.healthcare_guardrail.guardrail_version }

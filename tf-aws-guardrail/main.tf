@@ -116,6 +116,6 @@ resource "aws_bedrock_guardrail" "this" {
 # ===========================================================================
 resource "aws_bedrock_guardrail_version" "this" {
   count         = var.create_version ? 1 : 0
-  guardrail_arn = aws_bedrock_guardrail.this.arn
+  guardrail_arn = aws_bedrock_guardrail.this.guardrail_arn
   description   = "Terraform-managed version of ${local.name}"
 }

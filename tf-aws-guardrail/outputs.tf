@@ -5,7 +5,7 @@ output "guardrail_id" {
 
 output "guardrail_arn" {
   description = "The Bedrock Guardrail ARN."
-  value       = aws_bedrock_guardrail.this.arn
+  value       = aws_bedrock_guardrail.this.guardrail_arn
 }
 
 output "guardrail_version" {
