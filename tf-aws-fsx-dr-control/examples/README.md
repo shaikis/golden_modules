@@ -6,27 +6,16 @@ Runnable examples for the [`tf-aws-fsx-dr-control`](../) Terraform module.
 
 | Example | Description |
 |---------|-------------|
-| [basic](basic/) | Minimal configuration — deploys the Step Functions state machine and Lambda functions for FSx ONTAP DR switchover, wired to a Route 53 DNS record and an SNS notification topic |
+| [basic](basic/) | Minimal configuration for the DR control plane, plus example payloads for switchover, revert_switchover, failover, and failback |
 
-## Architecture
+## Scenario Map
 
 ```mermaid
-graph TB
-    subgraph "tf-aws-fsx-dr-control basic example"
-        SM["Step Functions\nState Machine\n(DR Switchover Workflow)"]
-        LMB["Lambda Functions\n(Switchover Logic)"]
-        R53["Route 53 CNAME\n(DNS Cutover)"]
-        SNS["SNS Topic\n(Notifications)"]
-        SEC["Secrets Manager\n(allowed_secret_arns)"]
-
-        SM --> LMB
-        LMB -->|update DNS| R53
-        LMB -->|publish events| SNS
-        LMB -->|read credentials| SEC
-    end
-
-    VPC["VPC\n(lambda_subnet_ids /\nsecurity_group_ids)"] --> LMB
-    OPS["Operator / EventBridge"] -->|start execution| SM
+flowchart TB
+    B["basic example"] --> SW["switchover<br/>non-promoting"]
+    B --> RV["revert_switchover"]
+    B --> FO["failover<br/>DR promotion path"]
+    B --> FB["failback<br/>post-recovery"]
 ```
 
 ## Quick Start

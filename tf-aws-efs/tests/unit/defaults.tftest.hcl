@@ -35,6 +35,11 @@ run "efs_defaults" {
     error_message = "Expected enable_replication to default to false."
   }
 
+  assert {
+    condition     = length(var.replications) == 0
+    error_message = "Expected replications to default to empty map."
+  }
+
   # encrypted by default
   assert {
     condition     = var.encrypted == true

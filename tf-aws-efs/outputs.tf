@@ -44,12 +44,28 @@ output "security_group_id" {
 }
 
 output "replication_destination_file_system_id" {
-  description = "ID of the auto-created destination EFS file system (null if replication disabled)"
-  value = (
-    var.create && var.enable_replication
-    ? aws_efs_replication_configuration.this[0].destination[0].file_system_id
-    : null
-  )
+  description = "Destination file system ID for the legacy/default replication configuration when present, otherwise null."
+  value       = try(aws_efs_replication_configuration.this["default"].destination[0].file_system_id, null)
+}
+
+output "replication_destination_file_system_ids" {
+  description = "Map of replication key => destination file system ID."
+  value       = { for key, replication in aws_efs_replication_configuration.this : key => replication.destination[0].file_system_id }
+}
+
+output "replication_configurations" {
+  description = "Map of replication key => normalized replication details and observed destination status."
+  value = {
+    for key, replication in aws_efs_replication_configuration.this : key => {
+      source_file_system_id      = replication.source_file_system_id
+      source_file_system_arn     = replication.source_file_system_arn
+      source_file_system_region  = replication.source_file_system_region
+      destination_file_system_id = replication.destination[0].file_system_id
+      destination_status         = replication.destination[0].status
+      destination_region         = try(local.normalized_replications[key].destination_region, null)
+      existing_destination       = try(local.normalized_replications[key].destination_file_system_id, null) != null
+    }
+  }
 }
 
 output "file_system_policy_id" {

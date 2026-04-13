@@ -1,123 +1,164 @@
 # tf-aws-efs
 
-Terraform module for Amazon EFS — encrypted managed NFS file system with HA mount targets, per-application access points, and optional security group management.
+Terraform module for Amazon EFS with encrypted file systems, HA mount targets, access points, and a more mature replication model.
 
----
+## What This Module Supports
+
+- One module-managed EFS file system with mount targets and access points
+- Optional replication for that module-managed source
+- Additional replication configurations for external source file systems
+- Same-region replication
+- Cross-region replication
+- AWS-created new destinations
+- Existing destination file systems where the Terraform provider supports them
+
+## EFS Replication Limits
+
+Amazon EFS replication remains **1:1 per file system**.
+
+Supported:
+- one source -> one destination
+- many independent 1:1 source/destination pairs in one module call
+- same-region or cross-region replication
+
+Not supported by the service:
+- one source -> many destinations
+- many sources -> one destination
+- one file system in multiple replication configurations
+
+Cross-account note:
+- Amazon EFS supports cross-account replication to an existing destination file system.
+- The current Terraform AWS provider schema available here exposes `destination.file_system_id`, but does not expose the IAM role field needed for the full role-based cross-account flow.
+- This module therefore documents cross-account possibilities, but does not claim first-class Terraform support for the role-based path yet.
 
 ## Architecture
+
+### File System Layer
 
 ```mermaid
 graph TB
     subgraph VPC["VPC"]
         subgraph AZ1["Availability Zone A"]
-            MT1["Mount Target\n(subnet-a)"]
-            EC2A["EC2 / ECS / EKS\nWorkload A"]
+            MT1["Mount Target"]
+            W1["Workload A"]
         end
         subgraph AZ2["Availability Zone B"]
-            MT2["Mount Target\n(subnet-b)"]
-            EC2B["EC2 / ECS / EKS\nWorkload B"]
+            MT2["Mount Target"]
+            W2["Workload B"]
         end
-        subgraph AZ3["Availability Zone C"]
-            MT3["Mount Target\n(subnet-c)"]
-            EC2C["EC2 / ECS / EKS\nWorkload C"]
-        end
-        SG["Security Group\n(NFS 2049)"]
+        SG["Security Group<br/>NFS 2049"]
     end
 
     subgraph EFS["Amazon EFS"]
-        FS["File System\n(encryption · performance mode)"]
-        AP1["Access Point\n/app/data"]
-        AP2["Access Point\n/app/config"]
+        FS["Primary file system"]
+        AP["Access points"]
     end
 
-    KMS["KMS Key"]
-
-    KMS --> FS
+    KMS["KMS key"] --> FS
     FS --> MT1
     FS --> MT2
-    FS --> MT3
     SG --> MT1
     SG --> MT2
-    SG --> MT3
-    MT1 --> EC2A
-    MT2 --> EC2B
-    MT3 --> EC2C
-    FS --> AP1
-    FS --> AP2
-
-    style VPC fill:#232F3E,color:#fff,stroke:#232F3E
-    style EFS fill:#FF9900,color:#fff,stroke:#FF9900
-    style KMS fill:#DD344C,color:#fff,stroke:#DD344C
-    style AZ1 fill:#1A9C3E,color:#fff,stroke:#1A9C3E
-    style AZ2 fill:#1A9C3E,color:#fff,stroke:#1A9C3E
-    style AZ3 fill:#1A9C3E,color:#fff,stroke:#1A9C3E
+    MT1 --> W1
+    MT2 --> W2
+    FS --> AP
 ```
 
----
+### Replication Capability Map
 
-## Features
+```mermaid
+flowchart TB
+    subgraph Supported["Supported patterns"]
+        S1["one source -> one destination"]
+        S2["same-region replication"]
+        S3["cross-region replication"]
+        S4["many independent 1:1 pairs"]
+        S5["existing destination reuse"]
+    end
 
-- EFS file system with KMS encryption at rest
-- Performance modes: `generalPurpose` or `maxIO`
-- Throughput modes: `bursting`, `provisioned`, or `elastic`
-- HA mount targets — one per subnet/AZ for regional resilience
-- Optional security group with configurable allowed CIDRs and security group IDs
-- Access points with POSIX UID/GID and root directory creation
-- `prevent_destroy` lifecycle guard on the file system
+    subgraph Unsupported["Unsupported patterns"]
+        U1["one source -> many destinations"]
+        U2["many sources -> one destination"]
+        U3["same source in multiple replications"]
+    end
+```
 
-## Security Controls
+### Multi-Pair Pattern
 
-| Control | Implementation |
-|---------|---------------|
-| Encryption at rest | `encrypted = true`, `kms_key_arn` (CMK) |
-| Encryption in transit | NFS over TLS (Amazon EFS mount helper) |
-| Network access | Security group restricts NFS (port 2049) |
-| Application isolation | Access points enforce POSIX user/group |
-| Deletion protection | `lifecycle { prevent_destroy = true }` |
-
-## Versioning
-
-Use explicit git tags such as `?ref=v1.0.0` to pin your deployments.
+```mermaid
+flowchart LR
+    A["source_a"] --> A1["dest_a"]
+    B["source_b"] --> B1["dest_b"]
+    C["source_c"] --> C1["new destination in another region"]
+```
 
 ## Usage
+
+### Backward-Compatible Single Replication
 
 ```hcl
 module "efs" {
   source = "git::https://github.com/your-org/golden_modules.git//tf-aws-efs?ref=v1.0.0"
 
-  name             = "shared-storage"
-  vpc_id           = module.vpc.vpc_id
-  subnet_ids       = module.vpc.private_subnet_ids
-  kms_key_arn      = module.kms.key_arn
+  name       = "shared-storage"
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnet_ids
 
-  performance_mode = "generalPurpose"
-  throughput_mode  = "elastic"
+  enable_replication                  = true
+  replication_destination_region      = "us-west-2"
+  replication_destination_kms_key_arn = "arn:aws:kms:us-west-2:123456789012:key/example"
+}
+```
 
-  create_security_group      = true
-  allowed_security_group_ids = [module.app.security_group_id]
+### Mature Multi-Pair Replication Map
 
-  access_points = {
-    app = {
-      path        = "/app/data"
-      owner_uid   = 1000
-      owner_gid   = 1000
-      permissions = "755"
-      posix_uid   = 1000
-      posix_gid   = 1000
+```hcl
+module "efs" {
+  source = "git::https://github.com/your-org/golden_modules.git//tf-aws-efs?ref=v1.0.0"
+
+  name       = "shared-storage"
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnet_ids
+
+  replications = {
+    primary_to_dr = {
+      use_module_source       = true
+      destination_region      = "us-west-2"
+      destination_kms_key_arn = "arn:aws:kms:us-west-2:123456789012:key/example"
+    }
+
+    reports_same_region = {
+      source_file_system_id      = "fs-0abc123456789def0"
+      destination_file_system_id = "fs-0123456789abcdef0"
+    }
+
+    analytics_cross_region = {
+      source_file_system_id = "fs-0fedcba9876543210"
+      destination_region    = "eu-west-1"
     }
   }
 }
 ```
 
-## Throughput Mode Reference
+## Replication Inputs
 
-| Mode | Best For | Cost Model |
-|------|---------|-----------|
-| `bursting` | Workloads with occasional spikes | Included in storage |
-| `provisioned` | Consistently high throughput | Per MB/s provisioned |
-| `elastic` | Unpredictable, spiky workloads | Per GB transferred |
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `enable_replication` | `bool` | `false` | Legacy single-replication toggle |
+| `replication_destination_region` | `string` | `null` | Legacy destination region for the default replication |
+| `replication_destination_kms_key_arn` | `string` | `null` | Legacy destination KMS key ARN for the default replication |
+| `replication_destination_availability_zone` | `string` | `null` | Legacy destination AZ for the default replication |
+| `replications` | `map(object)` | `{}` | Map of independent 1:1 replication pairs |
+
+## Replication Outputs
+
+| Name | Description |
+|---|---|
+| `replication_destination_file_system_id` | Destination file system ID for the legacy/default replication |
+| `replication_destination_file_system_ids` | Map of replication key => destination file system ID |
+| `replication_configurations` | Map of replication key => normalized source/destination details and status |
 
 ## Examples
 
-- [Basic Single-AZ](examples/basic/)
-- [Multi-AZ with Access Points](examples/multi-az/)
+- [Basic](examples/basic/)
+- [Complete](examples/complete/)

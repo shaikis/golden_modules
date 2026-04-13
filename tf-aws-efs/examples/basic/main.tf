@@ -42,12 +42,5 @@ module "efs" {
   replication_destination_region            = var.replication_destination_region
   replication_destination_kms_key_arn       = var.replication_destination_kms_key_arn
   replication_destination_availability_zone = var.replication_destination_availability_zone
+  replications                              = var.replications
 }
-
-# ---------------------------------------------------------------------------
-# Outputs
-# ---------------------------------------------------------------------------
-output "file_system_id" { value = module.efs.file_system_id }
-output "dns_name" { value = module.efs.dns_name }
-output "security_group_id" { value = module.efs.security_group_id }
-output "mount_target_ids" { value = module.efs.mount_target_ids }

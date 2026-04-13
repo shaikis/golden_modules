@@ -6,32 +6,31 @@ Runnable examples for the [`tf-aws-efs`](../) Terraform module.
 
 | Example | Description |
 |---------|-------------|
-| [basic](basic/) | Minimal configuration — creates an encrypted EFS file system with mount targets, a managed security group, and optional lifecycle/backup policies and cross-region replication |
-| [complete](complete/) | Full configuration with access points, NFS and EFS-utils mount helpers, cross-region replication, backup policy, and all lifecycle transition options |
+| [basic](basic/) | Minimal configuration for a single EFS source with optional one-to-one replication and managed mount-target security |
+| [complete](complete/) | Full configuration with access points, lifecycle policies, backup, and richer one-to-one replication patterns |
 
-## Architecture
+## Scenario Map
 
 ```mermaid
-graph TB
-    subgraph "tf-aws-efs complete example"
-        EFS["Amazon EFS\nFile System"]
-        MT["Mount Targets\n(per subnet)"]
-        SG["Security Group"]
-        AP["Access Points"]
-        BP["Backup Policy\n(AWS Backup)"]
-        REP["Cross-Region\nReplication"]
-
-        SG -->|controls NFS 2049| MT
-        MT --> EFS
-        EFS --> AP
-        EFS --> BP
-        EFS --> REP
+flowchart TB
+    subgraph Supported["Supported replication scenarios"]
+        OTO["1:1 replication"]
+        SAME["same-region"]
+        CROSS["cross-region"]
+        MANY["many independent 1:1 pairs"]
     end
 
-    VPC["VPC / Subnets"] --> MT
-    EC2["EC2 / ECS / Lambda"] -->|mount via NFS or efs-utils| MT
-    DR["DR Region"] --> REP
+    subgraph Unsupported["Unsupported by Amazon EFS"]
+        OTM["1:many replication"]
+        MTO["many:1 replication"]
+    end
 ```
+
+## Example Notes
+
+- `basic` demonstrates a straightforward 1:1 pattern for a single module-managed source.
+- `complete` demonstrates a richer production-oriented 1:1 setup with access points and DR-related options.
+- `1:many` and `many:1` are not included as runnable examples because Amazon EFS replication does not support those topologies.
 
 ## Quick Start
 

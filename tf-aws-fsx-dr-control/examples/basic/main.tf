@@ -41,3 +41,15 @@ output "state_machine_arn" {
 output "switchover_execution_example" {
   value = module.fsx_dr_control.switchover_execution_example
 }
+
+output "revert_switchover_execution_example" {
+  value = module.fsx_dr_control.revert_switchover_execution_example
+}
+
+output "failover_execution_example" {
+  value = module.fsx_dr_control.failover_execution_example
+}
+
+output "failback_execution_example" {
+  value = module.fsx_dr_control.failback_execution_example
+}

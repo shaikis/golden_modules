@@ -17,12 +17,12 @@ locals {
   state_table_name = var.create_state_table ? aws_dynamodb_table.dr_state[0].name : var.state_table_name
 
   lambda_env = {
-    STATE_TABLE_NAME       = local.state_table_name != null ? local.state_table_name : ""
-    DEFAULT_SNS_TOPIC_ARN  = var.notification_topic_arn != null ? var.notification_topic_arn : ""
+    STATE_TABLE_NAME        = local.state_table_name != null ? local.state_table_name : ""
+    DEFAULT_SNS_TOPIC_ARN   = var.notification_topic_arn != null ? var.notification_topic_arn : ""
     DEFAULT_ROUTE53_ZONE_ID = var.dns != null ? var.dns.zone_id : ""
-    DEFAULT_ROUTE53_NAME   = var.dns != null ? var.dns.record_name : ""
-    DEFAULT_ROUTE53_TYPE   = var.dns != null ? var.dns.record_type : ""
-    DEFAULT_ROUTE53_TTL    = tostring(var.dns != null ? var.dns.ttl : 30)
+    DEFAULT_ROUTE53_NAME    = var.dns != null ? var.dns.record_name : ""
+    DEFAULT_ROUTE53_TYPE    = var.dns != null ? var.dns.record_type : ""
+    DEFAULT_ROUTE53_TTL     = tostring(var.dns != null ? var.dns.ttl : 30)
   }
 
   step_function_definition = jsonencode({
@@ -30,13 +30,13 @@ locals {
     StartAt = "Precheck"
     States = {
       Precheck = {
-        Type     = "Task"
-        Resource = "arn:aws:states:::lambda:invoke"
+        Type       = "Task"
+        Resource   = "arn:aws:states:::lambda:invoke"
         OutputPath = "$.Payload"
         Parameters = {
           FunctionName = aws_lambda_function.controller.arn
           Payload = {
-            action             = "precheck"
+            action              = "precheck"
             "execution_input.$" = "$"
           }
         }

@@ -7,3 +7,9 @@ output "security_group_id" { value = module.efs.security_group_id }
 output "replication_destination_file_system_id" {
   value = module.efs.replication_destination_file_system_id
 }
+output "replication_destination_file_system_ids" {
+  value = module.efs.replication_destination_file_system_ids
+}
+output "replication_configurations" {
+  value = module.efs.replication_configurations
+}

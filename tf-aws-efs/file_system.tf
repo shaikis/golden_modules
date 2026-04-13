@@ -30,12 +30,28 @@ resource "aws_security_group" "efs" {
     }
   }
 
-  egress {
-    description = "Allow all outbound"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+  # Restrict egress to the same trusted NFS peers used for ingress. The
+  # mount target security group is attached in mount_targets.tf.
+  dynamic "egress" {
+    for_each = length(var.allowed_cidr_blocks) > 0 ? [1] : []
+    content {
+      description = "NFS to CIDR blocks"
+      from_port   = 2049
+      to_port     = 2049
+      protocol    = "tcp"
+      cidr_blocks = var.allowed_cidr_blocks
+    }
+  }
+
+  dynamic "egress" {
+    for_each = var.allowed_security_group_ids
+    content {
+      description     = "NFS to security group ${egress.value}"
+      from_port       = 2049
+      to_port         = 2049
+      protocol        = "tcp"
+      security_groups = [egress.value]
+    }
   }
 
   tags = merge(local.tags, { Name = "${local.name}-efs-sg" })

@@ -233,6 +233,67 @@ variable "replication_destination_availability_zone" {
   default     = null
 }
 
+variable "replications" {
+  description = <<-EOT
+    Map of replication configurations for independent 1:1 source/destination pairs.
+
+    Each replication supports one of these source selectors:
+      - use_module_source = true
+      - source_file_system_id = "fs-..."
+
+    Destination options:
+      - omit destination_file_system_id to let AWS create a new destination
+      - set destination_file_system_id to target an existing destination file system
+
+    Amazon EFS service limitations still apply:
+      - one source can replicate to only one destination
+      - one destination can belong to only one replication configuration
+      - one source cannot have multiple destinations
+      - multiple sources cannot share one destination
+  EOT
+  type = map(object({
+    use_module_source                  = optional(bool, false)
+    source_file_system_id              = optional(string)
+    destination_file_system_id         = optional(string)
+    destination_region                 = optional(string)
+    destination_kms_key_arn            = optional(string)
+    destination_availability_zone_name = optional(string)
+  }))
+  default = {}
+
+  validation {
+    condition = alltrue([
+      for replication in values(var.replications) :
+      try(replication.use_module_source, false) || try(replication.source_file_system_id, null) != null
+    ])
+    error_message = "Each replication must set use_module_source = true or provide source_file_system_id."
+  }
+
+  validation {
+    condition = alltrue([
+      for replication in values(var.replications) :
+      !(try(replication.use_module_source, false) && try(replication.source_file_system_id, null) != null)
+    ])
+    error_message = "Each replication must use exactly one source selector: use_module_source or source_file_system_id."
+  }
+
+  validation {
+    condition = length(distinct([
+      for key, replication in var.replications :
+      try(replication.use_module_source, false) ? "__module_source__" : replication.source_file_system_id
+    ])) == length(var.replications)
+    error_message = "Duplicate replication sources are not allowed within one module call."
+  }
+
+  validation {
+    condition = length(distinct([
+      for key, replication in var.replications :
+      try(replication.destination_file_system_id, null) != null ? replication.destination_file_system_id : "__new_destination__/${key}"
+    ])) == length(var.replications)
+    error_message = "Duplicate existing destination file_system_id values are not allowed within one module call."
+  }
+}
+
 # ---------------------------------------------------------------------------
 # File System Policy
 # ---------------------------------------------------------------------------

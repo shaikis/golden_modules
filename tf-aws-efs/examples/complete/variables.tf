@@ -154,3 +154,15 @@ variable "replication_destination_availability_zone" {
   type    = string
   default = null
 }
+
+variable "replications" {
+  type = map(object({
+    use_module_source                  = optional(bool, false)
+    source_file_system_id              = optional(string)
+    destination_file_system_id         = optional(string)
+    destination_region                 = optional(string)
+    destination_kms_key_arn            = optional(string)
+    destination_availability_zone_name = optional(string)
+  }))
+  default = {}
+}
