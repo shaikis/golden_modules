@@ -113,7 +113,7 @@ variable "ontap" {
     weekly_maintenance_start_time     = optional(string, "1:02:00")
     automatic_backup_retention_days   = optional(number, 7)
     daily_automatic_backup_start_time = optional(string, "02:00")
-    fsx_admin_password                = optional(string, null)
+    fsx_admin_password                = optional(string, null) # deprecated: use Secrets Manager instead
     fsx_admin_password_secret_id      = optional(string, null)
     fsx_admin_password_secret_key     = optional(string, "password")
     route_table_ids                   = optional(list(string), [])
@@ -161,9 +161,9 @@ variable "ontap" {
 
   validation {
     condition = var.ontap == null || (
-      var.ontap.fsx_admin_password != null || var.ontap.fsx_admin_password_secret_id != null
+      var.ontap.fsx_admin_password == null && var.ontap.fsx_admin_password_secret_id != null
     )
-    error_message = "When ontap is configured, set either ontap.fsx_admin_password or ontap.fsx_admin_password_secret_id."
+    error_message = "When ontap is configured, fsxadmin must be fetched from Secrets Manager using ontap.fsx_admin_password_secret_id. Plaintext ontap.fsx_admin_password is not supported."
   }
 
   validation {
@@ -305,11 +305,11 @@ variable "ontap_snapmirror" {
   EOT
   type = object({
     source_management_ip                  = string
-    source_admin_password                 = optional(string, null)
+    source_admin_password                 = optional(string, null) # deprecated: use Secrets Manager instead
     source_admin_password_secret_id       = optional(string, null)
     source_admin_password_secret_key      = optional(string, "password")
     destination_management_ip             = string
-    destination_admin_password            = optional(string, null)
+    destination_admin_password            = optional(string, null) # deprecated: use Secrets Manager instead
     destination_admin_password_secret_id  = optional(string, null)
     destination_admin_password_secret_key = optional(string, "password")
     source_https_port                     = optional(number, 443)
@@ -333,6 +333,16 @@ variable "ontap_snapmirror" {
   })
   default   = null
   sensitive = true # contains ONTAP admin passwords
+
+  validation {
+    condition = var.ontap_snapmirror == null || (
+      var.ontap_snapmirror.source_admin_password == null &&
+      var.ontap_snapmirror.destination_admin_password == null &&
+      var.ontap_snapmirror.source_admin_password_secret_id != null &&
+      var.ontap_snapmirror.destination_admin_password_secret_id != null
+    )
+    error_message = "When ontap_snapmirror is configured, source and destination fsxadmin credentials must be fetched from Secrets Manager secret IDs. Plaintext admin password inputs are not supported."
+  }
 }
 
 # ===========================================================================

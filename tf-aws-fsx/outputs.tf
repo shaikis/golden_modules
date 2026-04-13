@@ -42,11 +42,11 @@ output "ontap_cluster_peer_id" {
 output "ontap_replication_summary" {
   description = "Human-readable summary of active SnapMirror replication relationships."
   value = var.enable_ontap_snapmirror && var.ontap_snapmirror != null ? {
-    replication_mode        = var.ontap_snapmirror.replication_mode
-    schedule                = var.ontap_snapmirror.schedule
-    volume_relationships    = keys(try(var.ontap_snapmirror.volume_relationships, {}))
-    svm_dr_relationships    = keys(try(var.ontap_snapmirror.svm_dr_relationships, {}))
-    source_cluster          = var.ontap_snapmirror.source_management_ip
-    destination_cluster     = var.ontap_snapmirror.destination_management_ip
+    replication_mode     = var.ontap_snapmirror.replication_mode
+    schedule             = var.ontap_snapmirror.schedule
+    volume_relationships = keys(try(var.ontap_snapmirror.volume_relationships, {}))
+    svm_dr_relationships = keys(try(var.ontap_snapmirror.svm_dr_relationships, {}))
+    source_cluster       = var.ontap_snapmirror.source_management_ip
+    destination_cluster  = var.ontap_snapmirror.destination_management_ip
   } : null
 }

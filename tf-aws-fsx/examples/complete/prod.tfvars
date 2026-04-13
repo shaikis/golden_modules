@@ -20,23 +20,23 @@ windows = {
   weekly_maintenance_start_time     = "1:02:00"
   copy_tags_to_backups              = true
   skip_final_backup                 = false
-  active_directory_id               = "d-9999999999"   # prod AWS Managed AD
+  active_directory_id               = "d-9999999999" # prod AWS Managed AD
   audit_log_destination             = "arn:aws:logs:us-east-1:111122223333:log-group:/aws/fsx/windows"
   file_access_audit_log_level       = "SUCCESS_AND_FAILURE"
 }
 
 # Lustre — HPC/ML workloads
 lustre = {
-  storage_capacity            = 4800
-  subnet_ids                  = ["subnet-0prod1"]
-  security_group_ids          = ["sg-0fsx-lustre-prod"]
-  deployment_type             = "PERSISTENT_2"
-  storage_type                = "SSD"
-  per_unit_storage_throughput = 500
-  data_compression_type       = "LZ4"
+  storage_capacity                = 4800
+  subnet_ids                      = ["subnet-0prod1"]
+  security_group_ids              = ["sg-0fsx-lustre-prod"]
+  deployment_type                 = "PERSISTENT_2"
+  storage_type                    = "SSD"
+  per_unit_storage_throughput     = 500
+  data_compression_type           = "LZ4"
   automatic_backup_retention_days = 7
-  copy_tags_to_backups        = true
-  file_system_type_version    = "2.15"
+  copy_tags_to_backups            = true
+  file_system_type_version        = "2.15"
 }
 
 # ONTAP — enterprise NAS with AD join, tiering, multiple SVMs
@@ -57,29 +57,32 @@ ontap = {
       name                       = "prod-app-svm"
       root_volume_security_style = "UNIX"
       active_directory = {
-        dns_ips     = ["10.10.0.10", "10.10.0.11"]
-        domain_name = "corp.internal"
-        password_secret_id = "prod/fsx/domain-join"
-        username    = "svc-fsx-prod"
+        dns_ips                                = ["10.10.0.10", "10.10.0.11"]
+        domain_name                            = "corp.internal"
+        password_secret_id                     = "prod/fsx/domain-join"
+        username                               = "svc-fsx-prod"
         organizational_unit_distinguished_name = "OU=FSx,DC=corp,DC=internal"
-        netbios_name = "PROD-APP-SVM"
+        netbios_name                           = "PROD-APP-SVM"
       }
       volumes = {
         appdata = {
-          name              = "prod_app_data"
-          junction_path     = "/prod/data"
-          size_in_megabytes = 512000   # 500 GiB
-          security_style    = "UNIX"
+          name               = "prod_app_data"
+          junction_path      = "/prod/data"
+          size_in_megabytes  = 512000 # 500 GiB
+          security_style     = "UNIX"
           storage_efficiency = true
-          tiering_policy    = { name = "AUTO"; cooling_period = 31 }
-          snapshot_policy   = "default"
+          tiering_policy = {
+            name           = "AUTO"
+            cooling_period = 31
+          }
+          snapshot_policy      = "default"
           copy_tags_to_backups = true
         }
         appshare = {
           name              = "prod_app_share"
           junction_path     = "/prod/share"
-          size_in_megabytes = 102400   # 100 GiB
-          security_style    = "NTFS"   # Windows clients
+          size_in_megabytes = 102400 # 100 GiB
+          security_style    = "NTFS" # Windows clients
           tiering_policy    = { name = "SNAPSHOT_ONLY" }
         }
       }
@@ -91,7 +94,7 @@ ontap = {
         dbbackups = {
           name              = "prod_db_backups"
           junction_path     = "/dba/backups"
-          size_in_megabytes = 2048000  # 2 TiB
+          size_in_megabytes = 2048000 # 2 TiB
           security_style    = "UNIX"
           tiering_policy    = { name = "ALL" }
         }
@@ -105,11 +108,11 @@ ontap = {
 #   aws backup create-backup-vault --backup-vault-name prod-fsx-dr-vault --region us-west-2
 enable_ontap_backup                      = true
 ontap_backup_vault_name                  = "prod-fsx-ontap-vault"
-ontap_backup_schedule                    = "cron(0 2 * * ? *)"    # daily at 02:00 UTC
+ontap_backup_schedule                    = "cron(0 2 * * ? *)" # daily at 02:00 UTC
 ontap_backup_retention_days              = 30
 enable_ontap_cross_region_backup         = true
 ontap_cross_region_backup_vault_arn      = "arn:aws:backup:us-west-2:111122223333:backup-vault:prod-fsx-dr-vault"
-ontap_cross_region_backup_kms_key_arn    = null    # uses AWS-managed key in DR region
+ontap_cross_region_backup_kms_key_arn    = null # uses AWS-managed key in DR region
 ontap_cross_region_backup_retention_days = 90
 
 # OpenZFS — container/k8s persistent volumes
@@ -124,14 +127,17 @@ openzfs = {
 
   volumes = {
     k8s_pv = {
-      name                              = "k8s-pv"
-      junction_path                     = "/k8s"
-      storage_capacity_quota_gib        = 500
-      storage_capacity_reservation_gib  = 100
-      data_compression_type             = "ZSTD"
+      name                             = "k8s-pv"
+      junction_path                    = "/k8s"
+      storage_capacity_quota_gib       = 500
+      storage_capacity_reservation_gib = 100
+      data_compression_type            = "ZSTD"
       nfs_exports = [{
         client_configurations = [
-          { clients = "10.10.0.0/16"; options = ["rw", "crossmnt"] }
+          {
+            clients = "10.10.0.0/16"
+            options = ["rw", "crossmnt"]
+          }
         ]
       }]
     }

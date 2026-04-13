@@ -1,14 +1,15 @@
 # =============================================================================
-# EXAMPLE: FSx ONTAP — Cross-Region DR (All Three Approaches)
+# EXAMPLE: FSx ONTAP — DR Patterns (Cross-Region and Same-Region)
 #
 # Approach 1: AWS Backup cross-region copy (RPO = hours, no extra provider)
 # Approach 2: SnapMirror Async via NetApp ONTAP provider (RPO = ~hourly)
-# Approach 3: SVM DR via SnapMirror (replicates entire SVM config + data)
+# Approach 3: SnapMirror Sync / strictSync for same-region, low-latency replication
+# Approach 4: SVM DR via SnapMirror (replicates entire SVM config + data)
 #
 # Architecture:
 #   Primary region (us-east-1): FSx ONTAP MULTI_AZ_1 + 2 SVMs + volumes
-#   DR region     (us-west-2): FSx ONTAP MULTI_AZ_1 (standby, read-only)
-#   SnapMirror:   ONTAP-native async replication, hourly schedule
+#   DR region     (us-west-2 or same as primary): FSx ONTAP MULTI_AZ_1 standby
+#   SnapMirror:   ONTAP-native replication across multiple volumes
 #   AWS Backup:   Daily backup with 30-day retention, copied to DR region
 #   Route 53:     Latency-based records + health checks for automatic DNS failover
 #
@@ -121,6 +122,15 @@ module "fsx_primary" {
             tiering_policy     = { name = "SNAPSHOT_ONLY" }
             snapshot_policy    = "default"
           }
+          archive = {
+            name               = "archive"
+            junction_path      = "/archive"
+            size_in_megabytes  = var.archive_volume_size_gb * 1024
+            security_style     = "UNIX"
+            storage_efficiency = true
+            tiering_policy     = { name = "ALL" }
+            snapshot_policy    = "default"
+          }
         }
       }
     }
@@ -134,7 +144,7 @@ module "fsx_primary" {
   ontap_cross_region_backup_vault_arn      = module.fsx_dr.ontap_backup_vault_arn
   ontap_cross_region_backup_retention_days = 30
 
-  # ── Approach 2+3: SnapMirror Async via NetApp ONTAP provider ─────────────────
+  # ── Approach 2+4: SnapMirror via NetApp ONTAP provider ───────────────────────
   # Phase 1: leave primary/dr management IPs empty → SnapMirror is skipped.
   # Phase 2: fill in both IPs → run `terraform apply` again to create relationships.
   enable_ontap_snapmirror = var.primary_ontap_management_ip != "" && var.dr_ontap_management_ip != ""
@@ -146,10 +156,10 @@ module "fsx_primary" {
     destination_admin_password_secret_id  = var.fsx_admin_password_secret_id
     destination_admin_password_secret_key = var.fsx_admin_password_secret_key
 
-    replication_mode = "async"
-    schedule         = "hourly" # snapshot-based async, ~1 hour RPO
+    replication_mode = var.replication_mode
+    schedule         = "hourly" # used by async mode; same-region sync ignores schedules
 
-    # Approach 2: volume-level SnapMirror (granular)
+    # Approach 2/3: volume-level SnapMirror (granular)
     volume_relationships = {
       data = {
         source_svm_key          = "app"
@@ -167,9 +177,17 @@ module "fsx_primary" {
         policy_type             = "MirrorAllSnapshots"
         throttle_kb_s           = 10240 # 10 MB/s throttle for logs
       }
+      archive = {
+        source_svm_key          = "app"
+        source_volume_key       = "archive"
+        destination_svm_name    = "app-svm-dr"
+        destination_volume_name = "archive"
+        policy_type             = "MirrorAllSnapshots"
+        throttle_kb_s           = 5120 # 5 MB/s throttle for archive data
+      }
     }
 
-    # Approach 3: SVM DR (replicates entire SVM including CIFS/NFS config)
+    # Approach 4: SVM DR (replicates entire SVM including CIFS/NFS config)
     svm_dr_relationships = {
       app = {
         source_svm_key       = "app"

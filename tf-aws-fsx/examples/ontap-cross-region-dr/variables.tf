@@ -100,6 +100,18 @@ variable "logs_volume_size_gb" {
   default     = 50
 }
 
+variable "archive_volume_size_gb" {
+  description = "Size of the 'archive' volume in GiB."
+  type        = number
+  default     = 100
+}
+
+variable "replication_mode" {
+  description = "SnapMirror replication mode: async for cross-region DR, sync or strictSync for same-region low-RPO designs."
+  type        = string
+  default     = "async"
+}
+
 # ── SnapMirror ONTAP management endpoints ────────────────────────────────────
 # These are available after the FSx ONTAP clusters are created.
 # Navigate to: FSx Console → File system → Administration → Endpoints

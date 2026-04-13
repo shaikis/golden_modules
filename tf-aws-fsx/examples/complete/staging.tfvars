@@ -7,35 +7,35 @@ owner       = "storage-team"
 cost_center = "CC-400"
 
 windows = {
-  storage_capacity                  = 256
-  subnet_ids                        = ["subnet-0stg1", "subnet-0stg2"]
-  security_group_ids                = ["sg-0fsx-windows-stg"]
-  deployment_type                   = "MULTI_AZ_1"
-  preferred_subnet_id               = "subnet-0stg1"
-  throughput_capacity               = 64
-  automatic_backup_retention_days   = 7
-  skip_final_backup                 = true
-  active_directory_id               = "d-1234567890"
+  storage_capacity                = 256
+  subnet_ids                      = ["subnet-0stg1", "subnet-0stg2"]
+  security_group_ids              = ["sg-0fsx-windows-stg"]
+  deployment_type                 = "MULTI_AZ_1"
+  preferred_subnet_id             = "subnet-0stg1"
+  throughput_capacity             = 64
+  automatic_backup_retention_days = 7
+  skip_final_backup               = true
+  active_directory_id             = "d-1234567890"
 }
 
 ontap = {
-  storage_capacity              = 1024
-  subnet_ids                    = ["subnet-0stg1", "subnet-0stg2"]
-  security_group_ids            = ["sg-0fsx-ontap-stg"]
-  deployment_type               = "MULTI_AZ_1"
-  preferred_subnet_id           = "subnet-0stg1"
-  throughput_capacity           = 128
+  storage_capacity                = 1024
+  subnet_ids                      = ["subnet-0stg1", "subnet-0stg2"]
+  security_group_ids              = ["sg-0fsx-ontap-stg"]
+  deployment_type                 = "MULTI_AZ_1"
+  preferred_subnet_id             = "subnet-0stg1"
+  throughput_capacity             = 128
   automatic_backup_retention_days = 7
-  fsx_admin_password_secret_id  = "staging/fsx/admin"
+  fsx_admin_password_secret_id    = "staging/fsx/admin"
   svms = {
     app = {
       name                       = "app-svm"
       root_volume_security_style = "UNIX"
       active_directory = {
-        dns_ips     = ["10.0.0.10", "10.0.0.11"]
-        domain_name = "corp.internal"
+        dns_ips            = ["10.0.0.10", "10.0.0.11"]
+        domain_name        = "corp.internal"
         password_secret_id = "staging/fsx/domain-join"
-        username    = "svc-fsx"
+        username           = "svc-fsx"
       }
       volumes = {
         data = {
@@ -43,7 +43,10 @@ ontap = {
           junction_path     = "/app/data"
           size_in_megabytes = 51200
           security_style    = "UNIX"
-          tiering_policy    = { name = "AUTO"; cooling_period = 31 }
+          tiering_policy = {
+            name           = "AUTO"
+            cooling_period = 31
+          }
         }
       }
     }

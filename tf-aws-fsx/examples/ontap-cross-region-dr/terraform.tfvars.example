@@ -49,6 +49,14 @@ svm_admin_password_secret_id = "prod/fsx/svm-admin"
 # ── Volume sizes ──────────────────────────────────────────────────────────────
 data_volume_size_gb = 200
 logs_volume_size_gb = 50
+archive_volume_size_gb = 100
+
+# Replication mode:
+replication_mode = "async"
+# Same-region variant:
+# primary_region   = "us-east-1"
+# dr_region        = "us-east-1"
+# replication_mode = "sync"       # or "strictSync"
 
 # ── SnapMirror endpoints (fill in after Phase 1) ─────────────────────────────
 # primary_ontap_management_ip = "198.19.255.20"   # example — update after apply
