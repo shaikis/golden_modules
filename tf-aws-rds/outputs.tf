@@ -1,21 +1,25 @@
-output "db_instance_id"                { value = aws_db_instance.this.id }
-output "db_instance_arn"               { value = aws_db_instance.this.arn }
-output "db_instance_endpoint"          { value = aws_db_instance.this.endpoint }
-output "db_instance_address"           { value = aws_db_instance.this.address }
-output "db_instance_port"              { value = aws_db_instance.this.port }
-output "db_instance_name"              { value = aws_db_instance.this.db_name }
-output "db_instance_username"          { value = aws_db_instance.this.username; sensitive = true }
-output "db_instance_resource_id"       { value = aws_db_instance.this.resource_id }
-output "db_instance_status"            { value = aws_db_instance.this.status }
-output "db_instance_engine"            { value = aws_db_instance.this.engine }
-output "db_instance_engine_version"    { value = aws_db_instance.this.engine_version_actual }
-output "db_instance_hosted_zone_id"    { value = aws_db_instance.this.hosted_zone_id }
-output "db_master_user_secret_arn"     { value = try(aws_db_instance.this.master_user_secret[0].secret_arn, null) }
-output "db_parameter_group_id"         { value = length(aws_db_parameter_group.this) > 0 ? aws_db_parameter_group.this[0].id : null }
-output "db_option_group_id"            { value = length(aws_db_option_group.this) > 0 ? aws_db_option_group.this[0].id : null }
-output "db_option_group_arn"           { value = length(aws_db_option_group.this) > 0 ? aws_db_option_group.this[0].arn : null }
-output "domain_iam_role_arn"           { value = length(aws_iam_role.domain) > 0 ? aws_iam_role.domain[0].arn : null }
-output "snapshot_export_task_id"      { value = length(aws_rds_export_task.this) > 0 ? aws_rds_export_task.this[0].id : null }
-output "snapshot_export_status"       { value = length(aws_rds_export_task.this) > 0 ? aws_rds_export_task.this[0].status : null }
-output "snapshot_export_s3_prefix"    { value = length(aws_rds_export_task.this) > 0 ? aws_rds_export_task.this[0].s3_prefix : null }
+output "db_instance_id" { value = aws_db_instance.this.id }
+output "db_instance_arn" { value = aws_db_instance.this.arn }
+output "db_instance_endpoint" { value = aws_db_instance.this.endpoint }
+output "db_instance_address" { value = aws_db_instance.this.address }
+output "db_instance_port" { value = aws_db_instance.this.port }
+output "db_instance_name" { value = aws_db_instance.this.db_name }
+output "db_instance_username" {
+  value     = aws_db_instance.this.username
+  sensitive = true
+}
+output "db_instance_resource_id" { value = aws_db_instance.this.resource_id }
+output "db_instance_status" { value = aws_db_instance.this.status }
+output "db_instance_engine" { value = aws_db_instance.this.engine }
+output "db_instance_engine_version" { value = aws_db_instance.this.engine_version_actual }
+output "sqlserver_developer_custom_engine_version_name" { value = local.is_sqlserver_developer ? local.resolved_engine_version : null }
+output "db_instance_hosted_zone_id" { value = aws_db_instance.this.hosted_zone_id }
+output "db_master_user_secret_arn" { value = try(aws_db_instance.this.master_user_secret[0].secret_arn, null) }
+output "db_parameter_group_id" { value = length(aws_db_parameter_group.this) > 0 ? aws_db_parameter_group.this[0].id : null }
+output "db_option_group_id" { value = length(aws_db_option_group.this) > 0 ? aws_db_option_group.this[0].id : null }
+output "db_option_group_arn" { value = length(aws_db_option_group.this) > 0 ? aws_db_option_group.this[0].arn : null }
+output "domain_iam_role_arn" { value = length(aws_iam_role.domain) > 0 ? aws_iam_role.domain[0].arn : null }
+output "snapshot_export_task_id" { value = length(aws_rds_export_task.this) > 0 ? aws_rds_export_task.this[0].id : null }
+output "snapshot_export_status" { value = length(aws_rds_export_task.this) > 0 ? aws_rds_export_task.this[0].status : null }
+output "snapshot_export_s3_prefix" { value = length(aws_rds_export_task.this) > 0 ? aws_rds_export_task.this[0].s3_prefix : null }
 output "enhanced_monitoring_iam_role_arn" { value = length(aws_iam_role.monitoring) > 0 ? aws_iam_role.monitoring[0].arn : null }

@@ -23,14 +23,13 @@ variable "cost_center" {
 }
 variable "tags" {
   type    = map(string)
-  default = {
-} }
-
-# ---------------------------------------------------------------------------
+  default = {}
+}
+#---------------------------------------------------------------------------
 # Engine
 # ---------------------------------------------------------------------------
 variable "engine" {
-  description = "Database engine: mysql, postgres, mariadb, oracle-ee, sqlserver-ee, etc."
+  description = "Database engine: mysql, postgres, mariadb, oracle-ee, sqlserver-ee, sqlserver-dev-ee, etc."
   type        = string
   default     = "postgres"
 }
@@ -39,6 +38,74 @@ variable "engine_version" {
   description = "Engine version. Leave empty to use latest."
   type        = string
   default     = "15.5"
+}
+
+variable "create_sqlserver_developer_custom_engine_version" {
+  description = <<-EOT
+    Create an RDS custom engine version (CEV) for SQL Server Developer Edition
+    before provisioning the DB instance.
+
+    This path uses the AWS CLI through Terraform local-exec because the AWS
+    provider does not currently expose first-class SQL Server Developer CEV
+    creation. Requires:
+      - engine = "sqlserver-dev-ee"
+      - AWS CLI installed where Terraform runs
+      - AWS CLI credentials able to manage RDS in the target account
+  EOT
+  type        = bool
+  default     = false
+}
+
+variable "sqlserver_developer_custom_engine_version_name" {
+  description = <<-EOT
+    Name of the SQL Server Developer custom engine version to create and/or use.
+    Example: 16.00.4215.2.my-dev-cev
+
+    When create_sqlserver_developer_custom_engine_version = true, this value is
+    automatically used as the DB instance engine_version.
+  EOT
+  type        = string
+  default     = null
+}
+
+variable "sqlserver_developer_media_bucket_name" {
+  description = "S3 bucket containing the SQL Server Developer installation ISO and cumulative update files."
+  type        = string
+  default     = null
+}
+
+variable "sqlserver_developer_media_bucket_prefix" {
+  description = "Optional S3 prefix containing the SQL Server Developer installation files."
+  type        = string
+  default     = null
+}
+
+variable "sqlserver_developer_media_files" {
+  description = <<-EOT
+    Ordered list of installation media files present in the S3 bucket/prefix.
+    Provide the base SQL Server Developer ISO first, followed by the cumulative
+    update executable(s).
+  EOT
+  type        = list(string)
+  default     = []
+}
+
+variable "sqlserver_developer_custom_engine_version_description" {
+  description = "Optional description for the SQL Server Developer custom engine version."
+  type        = string
+  default     = null
+}
+
+variable "sqlserver_developer_wait_poll_interval_seconds" {
+  description = "Polling interval, in seconds, while waiting for the SQL Server Developer custom engine version to become available."
+  type        = number
+  default     = 30
+}
+
+variable "sqlserver_developer_wait_timeout_seconds" {
+  description = "Maximum number of seconds to wait for the SQL Server Developer custom engine version to become available."
+  type        = number
+  default     = 3600
 }
 
 variable "instance_class" {
@@ -52,7 +119,6 @@ variable "license_model" {
   type        = string
   default     = null
 }
-
 # ---------------------------------------------------------------------------
 # Database
 # ---------------------------------------------------------------------------

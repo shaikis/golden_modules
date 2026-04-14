@@ -7,7 +7,7 @@ resource "aws_db_instance" "this" {
 
   # Engine
   engine                      = var.engine
-  engine_version              = var.engine_version
+  engine_version              = local.resolved_engine_version
   instance_class              = var.instance_class
   license_model               = var.license_model
   auto_minor_version_upgrade  = var.auto_minor_version_upgrade
@@ -130,5 +130,39 @@ resource "aws_db_instance" "this" {
   lifecycle {
     prevent_destroy = true
     ignore_changes  = [password, tags["CreatedDate"]]
+
+    precondition {
+      condition     = !local.is_sqlserver_developer || var.license_model == "bring-your-own-license"
+      error_message = "SQL Server Developer Edition on RDS requires license_model = \"bring-your-own-license\"."
+    }
+
+    precondition {
+      condition     = !local.is_sqlserver_developer || !var.multi_az
+      error_message = "SQL Server Developer Edition on RDS does not support Multi-AZ deployments."
+    }
+
+    precondition {
+      condition     = !local.is_sqlserver_developer || var.replicate_source_db == null
+      error_message = "SQL Server Developer Edition on RDS does not support read replicas."
+    }
+
+    precondition {
+      condition     = !local.is_sqlserver_developer || can(regex("^db\\.(m6i|r6i)\\.", var.instance_class))
+      error_message = "SQL Server Developer Edition on RDS is currently supported only on db.m6i.* and db.r6i.* instance classes."
+    }
+
+    precondition {
+      condition     = !local.is_sqlserver_developer || var.db_name == null
+      error_message = "For SQL Server Developer Edition, set db_name = null and create databases after the instance is provisioned."
+    }
+
+    precondition {
+      condition     = local.is_sqlserver_developer || !var.create_sqlserver_developer_custom_engine_version
+      error_message = "create_sqlserver_developer_custom_engine_version can only be used when engine = \"sqlserver-dev-ee\"."
+    }
   }
+
+  depends_on = [
+    null_resource.sqlserver_developer_custom_engine_version
+  ]
 }

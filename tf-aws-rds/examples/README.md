@@ -17,6 +17,7 @@ Runnable examples for the [`tf-aws-rds`](../) Terraform module.
 | [cross_region_oracle](cross_region_oracle/) | Oracle (EE/SE2/CDB editions) primary with BYOL or license-included, NCHAR charset support, option group, backup replication, and optional cross-region replica |
 | [cross_region_postgres](cross_region_postgres/) | PostgreSQL primary with choice-based automated backup replication and/or cross-region read replica using separate provider aliases |
 | [cross_region_sqlserver](cross_region_sqlserver/) | SQL Server (EE/SE/EX/Web) with automated backup replication to DR — note: SQL Server does not support cross-region read replicas; AD/Windows Auth configuration also shown |
+| [sqlserver_developer](sqlserver_developer/) | SQL Server Developer Edition on RDS with Terraform-managed custom engine version creation from S3 installation media |
 
 ## Architecture
 

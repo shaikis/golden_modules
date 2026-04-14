@@ -14,6 +14,7 @@ All features are **choice-based** — enable only what you need via `tfvars`.
 | MariaDB 10.11 | RDS | ✅ Yes | ✅ Yes | `cross_region_mariadb/` |
 | Oracle EE / SE2 | RDS | ✅ Yes | ✅ Yes | `cross_region_oracle/` |
 | SQL Server EE/SE/EX/Web | RDS | ❌ No | ✅ Yes | `cross_region_sqlserver/` |
+| SQL Server Developer (`sqlserver-dev-ee`) | RDS | ❌ No | ⚠️ Limited | `sqlserver_developer/` |
 | Aurora MySQL 3.x (MySQL 8.0) | Aurora | Global DB | N/A | `cross_region_aurora_mysql/` |
 | Aurora PostgreSQL 16.x | Aurora | Global DB | N/A | `cross_region_aurora_postgres/` |
 
@@ -85,6 +86,57 @@ terraform plan -var-file="dev.tfvars"
 # Apply
 terraform apply -var-file="dev.tfvars"
 ```
+
+---
+
+## SQL Server Developer Edition
+
+This module supports SQL Server Developer Edition on Amazon RDS with
+`engine = "sqlserver-dev-ee"`.
+
+Because the Terraform AWS provider does not currently expose first-class
+creation for SQL Server Developer custom engine versions (CEVs), this module
+creates the CEV through Terraform using `local-exec` plus the AWS CLI, then
+waits for the CEV to become `available` before creating the DB instance.
+
+Requirements for this path:
+- AWS CLI installed on the machine running Terraform
+- SQL Server Developer installation media uploaded to S3
+- `license_model = "bring-your-own-license"`
+- `multi_az = false`
+- instance class in the `db.m6i.*` or `db.r6i.*` families
+- `db_name = null`
+
+Example:
+
+```hcl
+module "rds" {
+  source = "../tf-aws-rds"
+
+  name           = "sqlserver-dev"
+  engine         = "sqlserver-dev-ee"
+  engine_version = "16.00.4215.2.my-dev-cev"
+  instance_class = "db.m6i.large"
+  license_model  = "bring-your-own-license"
+
+  create_sqlserver_developer_custom_engine_version      = true
+  sqlserver_developer_custom_engine_version_name        = "16.00.4215.2.my-dev-cev"
+  sqlserver_developer_media_bucket_name                 = "my-sqlserver-dev-installation-media"
+  sqlserver_developer_media_bucket_prefix               = "sqlserver-dev-media"
+  sqlserver_developer_media_files                       = ["SQLServer2022-x64-ENU-Dev.iso", "SQLServer2022-KB5065865-x64.exe"]
+  sqlserver_developer_custom_engine_version_description = "Dev/Test SQL Server 2022 CEV"
+
+  db_name               = null
+  multi_az              = false
+  db_subnet_group_name  = var.db_subnet_group_name
+  vpc_security_group_ids = var.vpc_security_group_ids
+}
+```
+
+Notes:
+- The CEV creation step is asynchronous and can take 15-30 minutes.
+- Destroy also attempts to delete the CEV after the DB instance is removed.
+- Cross-region backup replication for Developer Edition is not modeled in this module path because the custom engine version is regional.
 
 ---
 
@@ -486,6 +538,7 @@ module "rds_primary" {
 - Min storage: 200 GiB for SE/EE
 - Min instance class: `db.m5.xlarge` for SE; `db.t3.medium` for EX/Web
 - For DR: use `enable_automated_backup_replication + multi_az`
+- Developer Edition: use `engine = "sqlserver-dev-ee"` with `license_model = "bring-your-own-license"`, `multi_az = false`, and `db.m6i.*` or `db.r6i.*`
 
 ### Aurora MySQL
 - Engine: `aurora-mysql` | Version format: `8.0.mysql_aurora.3.x.x`
@@ -542,6 +595,7 @@ examples/
   cross_region_mariadb/         — MariaDB cross-region
   cross_region_oracle/          — Oracle EE/SE2 cross-region
   cross_region_sqlserver/       — SQL Server SE/EE (backup replication only)
+  sqlserver_developer/          — SQL Server Developer Edition with Terraform-managed CEV
   cross_region_aurora_mysql/    — Aurora MySQL Global Database
   cross_region_aurora_postgres/ — Aurora PostgreSQL Global Database
 ```
@@ -556,4 +610,3 @@ Each example folder contains:
 ## Versioning
 
 Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use explicit git tags such as `?ref=v1.0.0`, `?ref=v1.1.0`, or `?ref=v2.0.0` so deployments stay predictable.
-
