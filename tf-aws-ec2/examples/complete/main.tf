@@ -121,7 +121,7 @@ module "ec2_fleet" {
       }
     }
 
-    spot01 = {
+    worker01 = {
       use_spot               = true
       spot_price             = "0.08"
       instance_type          = "t3.large"
@@ -140,7 +140,7 @@ module "ec2_fleet" {
       }
     }
 
-    spot02 = {
+    worker02 = {
       use_spot               = true
       spot_price             = "0.08"
       instance_type          = "t3.large"
@@ -153,4 +153,3 @@ module "ec2_fleet" {
     }
   }
 }
-
