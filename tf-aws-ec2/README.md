@@ -27,7 +27,7 @@ Terraform module for AWS EC2 instances with security-hardened defaults.
 
 ## Architecture
 
-```md
+
 ```mermaid
 graph TB
 
