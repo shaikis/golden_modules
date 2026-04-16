@@ -79,15 +79,28 @@ Review [CHANGELOG.md](CHANGELOG.md) before selecting a module version. Use expli
 ## Usage
 
 ```hcl
-module "ec2" {
-  source = "git::https://github.com/your-org/tf-modules.git//tf-aws-ec2?ref=v1.0.0"
+module "ec2_fleet" {
+  source = "git::https://github.com/shaikis/golden_modules.git//tf-aws-ec2?ref=main"
 
-  name                   = "app-server"
-  instance_type          = "t3.medium"
-  subnet_id              = module.vpc.private_subnet_ids_list[0]
-  vpc_security_group_ids = [module.sg.security_group_id]
-  iam_instance_profile   = module.role.instance_profile_name
-  root_volume_kms_key_id = module.kms.key_arn
+  name_prefix = "app"
+  environment = "dev"
+
+  instances = {
+    app01 = {
+      instance_type          = "t3.medium"
+      subnet_id              = "subnet-xxxx"
+      vpc_security_group_ids = ["sg-xxxx"]
+      create_eip             = true
+    }
+
+    worker01 = {
+      use_spot               = true
+      spot_price             = "0.08"
+      instance_type          = "t3.large"
+      subnet_id              = "subnet-yyyy"
+      vpc_security_group_ids = ["sg-yyyy"]
+    }
+  }
 }
 ```
 
