@@ -27,49 +27,66 @@ Terraform module for AWS EC2 instances with security-hardened defaults.
 
 ## Architecture
 
+```md
 ```mermaid
 graph TB
-    subgraph VPC["VPC / Subnet"]
-        OD["On-Demand EC2"]
-        SP["Spot EC2"]
-        SG["Security Group"]
-        EIP["Elastic IP (optional, on-demand only)"]
-    end
 
-    subgraph Storage["EBS Storage"]
-        ROOT["Root Volume (encrypted, KMS optional)"]
-        DATA["Additional EBS Volumes"]
-    end
+subgraph Compute
+    OD["On-Demand EC2"]
+    SP["Spot EC2"]
+end
 
-    subgraph IAM["IAM"]
-        ROLE["IAM Role"]
-        PROFILE["Instance Profile"]
-    end
+subgraph Storage
+    ROOT["Root Volume"]
+    DATA["EBS Volumes"]
+end
 
-    subgraph Metadata["Instance Metadata"]
-        IMDS["IMDSv2 required"]
-    end
+subgraph Network
+    SG["Security Group"]
+    EIP["Elastic IP"]
+end
 
-    AMI["Amazon Linux 2023 AMI lookup"]
-    CW["Detailed Monitoring"]
+subgraph IAM
+    ROLE["IAM Role"]
+    PROFILE["Instance Profile"]
+end
 
-    AMI --> OD
-    AMI --> SP
-    SG --> OD
-    SG --> SP
-    ROLE --> PROFILE
-    PROFILE --> OD
-    PROFILE --> SP
-    EIP --> OD
-    OD --> ROOT
-    OD --> DATA
-    SP --> ROOT
-    SP --> DATA
-    OD --> IMDS
-    SP --> IMDS
-    OD --> CW
-    SP --> CW
+subgraph System
+    AMI["AMI Lookup"]
+    IMDS["IMDSv2"]
+    CW["Monitoring"]
+end
+
+AMI --> OD
+AMI --> SP
+SG --> OD
+SG --> SP
+ROLE --> PROFILE
+PROFILE --> OD
+PROFILE --> SP
+EIP --> OD
+OD --> ROOT
+OD --> DATA
+SP --> ROOT
+SP --> DATA
+OD --> IMDS
+SP --> IMDS
+OD --> CW
+SP --> CW
+
+classDef compute fill:#E3F2FD,stroke:#1E88E5,stroke-width:2px;
+classDef storage fill:#E8F5E9,stroke:#43A047,stroke-width:2px;
+classDef network fill:#FFF3E0,stroke:#FB8C00,stroke-width:2px;
+classDef iam fill:#F3E5F5,stroke:#8E24AA,stroke-width:2px;
+classDef meta fill:#ECEFF1,stroke:#546E7A,stroke-width:2px;
+
+class OD,SP compute;
+class ROOT,DATA storage;
+class SG,EIP network;
+class ROLE,PROFILE iam;
+class AMI,IMDS,CW meta;
 ```
+
 
 ## Versioning
 
