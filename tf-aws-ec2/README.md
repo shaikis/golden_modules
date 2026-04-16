@@ -31,31 +31,17 @@ Terraform module for AWS EC2 instances with security-hardened defaults.
 ```mermaid
 graph TB
 
-subgraph Compute
-    OD["On-Demand EC2"]
-    SP["Spot EC2"]
-end
-
-subgraph Storage
-    ROOT["Root Volume"]
-    DATA["EBS Volumes"]
-end
-
-subgraph Network
-    SG["Security Group"]
-    EIP["Elastic IP"]
-end
-
-subgraph IAM
-    ROLE["IAM Role"]
-    PROFILE["Instance Profile"]
-end
-
-subgraph System
-    AMI["AMI Lookup"]
-    IMDS["IMDSv2"]
-    CW["Monitoring"]
-end
+OD["On-Demand EC2"]
+SP["Spot EC2"]
+SG["Security Group"]
+EIP["Elastic IP"]
+ROOT["Root Volume"]
+DATA["EBS Volumes"]
+ROLE["IAM Role"]
+PROFILE["Instance Profile"]
+IMDS["IMDSv2"]
+AMI["AMI Lookup"]
+CW["Monitoring"]
 
 AMI --> OD
 AMI --> SP
@@ -74,17 +60,18 @@ SP --> IMDS
 OD --> CW
 SP --> CW
 
-classDef compute fill:#E3F2FD,stroke:#1E88E5,stroke-width:2px;
-classDef storage fill:#E8F5E9,stroke:#43A047,stroke-width:2px;
-classDef network fill:#FFF3E0,stroke:#FB8C00,stroke-width:2px;
-classDef iam fill:#F3E5F5,stroke:#8E24AA,stroke-width:2px;
-classDef meta fill:#ECEFF1,stroke:#546E7A,stroke-width:2px;
+%% Stronger colors (notice darker fills)
+classDef compute fill:#90CAF9,stroke:#1565C0,color:#000;
+classDef storage fill:#A5D6A7,stroke:#2E7D32,color:#000;
+classDef network fill:#FFCC80,stroke:#EF6C00,color:#000;
+classDef iam fill:#CE93D8,stroke:#6A1B9A,color:#000;
+classDef meta fill:#CFD8DC,stroke:#455A64,color:#000;
 
 class OD,SP compute;
 class ROOT,DATA storage;
 class SG,EIP network;
 class ROLE,PROFILE iam;
-class AMI,IMDS,CW meta;
+class IMDS,AMI,CW meta;
 ```
 
 
