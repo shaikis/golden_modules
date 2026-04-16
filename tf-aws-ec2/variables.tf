@@ -61,6 +61,11 @@ variable "subnet_id" {
 variable "vpc_security_group_ids" {
   type    = list(string)
   default = []
+
+  validation {
+    condition     = length(var.vpc_security_group_ids) > 0
+    error_message = "At least one security group ID must be provided."
+  }
 }
 
 variable "iam_instance_profile" {
@@ -91,6 +96,21 @@ variable "availability_zone" {
 variable "tenancy" {
   type    = string
   default = "default"
+
+  validation {
+    condition     = contains(["default", "dedicated", "host"], var.tenancy)
+    error_message = "tenancy must be one of: default, dedicated, host."
+  }
+}
+
+variable "instance_initiated_shutdown_behavior" {
+  type    = string
+  default = "stop"
+
+  validation {
+    condition     = contains(["stop", "terminate"], var.instance_initiated_shutdown_behavior)
+    error_message = "instance_initiated_shutdown_behavior must be stop or terminate."
+  }
 }
 
 variable "disable_api_termination" {
@@ -103,11 +123,6 @@ variable "disable_api_stop" {
   description = "Protect instance from accidental stop."
   type        = bool
   default     = false
-}
-
-variable "instance_initiated_shutdown_behavior" {
-  type    = string
-  default = "stop"
 }
 
 variable "monitoring" {
@@ -134,11 +149,21 @@ variable "get_password_data" {
 variable "root_volume_type" {
   type    = string
   default = "gp3"
+
+  validation {
+    condition     = contains(["gp2", "gp3", "io1", "io2", "st1", "sc1", "standard"], var.root_volume_type)
+    error_message = "Unsupported root_volume_type."
+  }
 }
 
 variable "root_volume_size" {
   type    = number
-  default = 20
+  default = 50
+
+  validation {
+    condition     = var.root_volume_size >= 8
+    error_message = "root_volume_size must be at least 8 GiB."
+  }
 }
 
 variable "root_volume_iops" {
@@ -183,6 +208,41 @@ variable "ebs_volumes" {
     snapshot_id           = optional(string, null)
   }))
   default = {}
+
+  validation {
+    condition = alltrue([
+      for v in values(var.ebs_volumes) :
+      can(regex("^/dev/sd[f-p]$", v.device_name))
+    ])
+    error_message = "Each ebs_volumes[*].device_name must be like /dev/sdf through /dev/sdp."
+  }
+
+  validation {
+    condition = alltrue([
+      for v in values(var.ebs_volumes) :
+      v.volume_size >= 1
+    ])
+    error_message = "Each EBS volume must be at least 1 GiB."
+  }
+
+  validation {
+    condition = alltrue([
+      for v in values(var.ebs_volumes) :
+      contains(["gp2", "gp3", "io1", "io2", "st1", "sc1", "standard"], v.volume_type)
+    ])
+    error_message = "Each EBS volume must use a supported volume_type."
+  }
+
+  validation {
+    condition = alltrue([
+      for v in values(var.ebs_volumes) :
+      v.volume_type != "gp3" || (
+        (v.iops == null || (v.iops >= 3000 && v.iops <= 16000)) &&
+        (v.throughput == null || (v.throughput >= 125 && v.throughput <= 1000))
+      )
+    ])
+    error_message = "For gp3 volumes, iops and throughput must be within supported ranges."
+  }
 }
 
 # ---------------------------------------------------------------------------
@@ -252,18 +312,28 @@ variable "cpu_credits" {
 # Metadata Options
 # ---------------------------------------------------------------------------
 variable "metadata_options" {
-  description = "EC2 Instance Metadata Service (IMDS) options."
   type = object({
     http_endpoint               = optional(string, "enabled")
-    http_tokens                 = optional(string, "required") # IMDSv2 required
+    http_tokens                 = optional(string, "required")
     http_put_response_hop_limit = optional(number, 1)
     instance_metadata_tags      = optional(string, "enabled")
   })
+
   default = {
     http_endpoint               = "enabled"
     http_tokens                 = "required"
     http_put_response_hop_limit = 1
     instance_metadata_tags      = "enabled"
+  }
+
+  validation {
+    condition     = contains(["enabled", "disabled"], var.metadata_options.http_endpoint)
+    error_message = "metadata_options.http_endpoint must be enabled or disabled."
+  }
+
+  validation {
+    condition     = contains(["optional", "required"], var.metadata_options.http_tokens)
+    error_message = "metadata_options.http_tokens must be optional or required."
   }
 }
 
