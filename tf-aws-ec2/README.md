@@ -28,7 +28,6 @@ Terraform module for AWS EC2 instances with security-hardened defaults.
 ## Architecture
 
 ```mermaid
-## Architecture
 graph TB
     subgraph VPC["VPC / Subnet"]
         OD["On-Demand EC2"]
