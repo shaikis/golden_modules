@@ -1,12 +1,16 @@
 # ---------------------------------------------------------------------------
-# Elastic IP
+# Elastic IP - on-demand only
 # ---------------------------------------------------------------------------
+
 resource "aws_eip" "this" {
-  count    = var.create_eip && !var.use_spot ? 1 : 0
-  instance = aws_instance.this.id
+  for_each = local.eip_instances
+
+  instance = aws_instance.this[each.key].id
   domain   = "vpc"
 
-  tags = merge(local.tags, { Name = "${local.name}-eip" })
+  tags = merge(local.instance_tags[each.key], {
+    Name = "${local.instance_names[each.key]}-eip"
+  })
 
   depends_on = [aws_instance.this]
 }
