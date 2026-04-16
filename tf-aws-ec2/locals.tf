@@ -1,8 +1,14 @@
 locals {
-  name = var.name_prefix != "" ? "${var.name_prefix}-${var.name}" : var.name
+  instance_names = {
+    for k, v in var.instances :
+    k => (
+      try(v.name, null) != null && try(v.name, "") != ""
+      ? (var.name_prefix != "" ? "${var.name_prefix}-${v.name}" : v.name)
+      : (var.name_prefix != "" ? "${var.name_prefix}-${k}" : k)
+    )
+  }
 
   default_tags = {
-    Name        = local.name
     Environment = var.environment
     Project     = var.project
     Owner       = var.owner
@@ -10,7 +16,31 @@ locals {
     ManagedBy   = "terraform"
     Module      = "tf-aws-ec2"
   }
-  tags = merge(local.default_tags, var.tags)
+
+  instance_tags = {
+    for k, v in var.instances :
+    k => merge(
+      local.default_tags,
+      var.tags,
+      try(v.tags, {}),
+      { Name = local.instance_names[k] }
+    )
+  }
 
   ami_id = var.ami_id != "" ? var.ami_id : data.aws_ami.amazon_linux[0].id
+
+  ondemand_instances = {
+    for k, v in var.instances : k => v
+    if !try(v.use_spot, false)
+  }
+
+  spot_instances = {
+    for k, v in var.instances : k => v
+    if try(v.use_spot, false)
+  }
+
+  eip_instances = {
+    for k, v in local.ondemand_instances : k => v
+    if try(v.create_eip, false)
+  }
 }
