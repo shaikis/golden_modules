@@ -28,16 +28,18 @@ Terraform module for AWS EC2 instances with security-hardened defaults.
 ## Architecture
 
 ```mermaid
+## Architecture
 graph TB
     subgraph VPC["VPC / Subnet"]
-        EC2["EC2 Instance\n(On-Demand or Spot)"]
+        OD["On-Demand EC2"]
+        SP["Spot EC2"]
         SG["Security Group"]
-        EIP["Elastic IP\n(optional)"]
+        EIP["Elastic IP (optional, on-demand only)"]
     end
 
     subgraph Storage["EBS Storage"]
-        ROOT["Root Volume\n(encrypted · KMS)"]
-        DATA["Additional EBS Volumes\n(encrypted · KMS)"]
+        ROOT["Root Volume (encrypted, KMS optional)"]
+        DATA["Additional EBS Volumes"]
     end
 
     subgraph IAM["IAM"]
@@ -46,31 +48,28 @@ graph TB
     end
 
     subgraph Metadata["Instance Metadata"]
-        IMDS["IMDSv2\n(http_tokens=required)"]
+        IMDS["IMDSv2 required"]
     end
 
-    KMS["KMS Key\n(EBS encryption)"]
-    CW["CloudWatch\n(detailed monitoring)"]
-    SSM["SSM Parameter\n(AMI lookup)"]
+    AMI["Amazon Linux 2023 AMI lookup"]
+    CW["Detailed Monitoring"]
 
-    SSM -->|"latest AMI"| EC2
-    PROFILE --> EC2
+    AMI --> OD
+    AMI --> SP
+    SG --> OD
+    SG --> SP
     ROLE --> PROFILE
-    SG --> EC2
-    EIP --> EC2
-    EC2 --> ROOT
-    EC2 --> DATA
-    KMS --> ROOT
-    KMS --> DATA
-    EC2 --> IMDS
-    EC2 --> CW
-
-    style VPC fill:#FF9900,color:#fff,stroke:#FF9900
-    style Storage fill:#3F8624,color:#fff,stroke:#3F8624
-    style IAM fill:#DD344C,color:#fff,stroke:#DD344C
-    style Metadata fill:#1A73E8,color:#fff,stroke:#1A73E8
-    style KMS fill:#8C4FFF,color:#fff,stroke:#8C4FFF
-    style CW fill:#FF4F8B,color:#fff,stroke:#FF4F8B
+    PROFILE --> OD
+    PROFILE --> SP
+    EIP --> OD
+    OD --> ROOT
+    OD --> DATA
+    SP --> ROOT
+    SP --> DATA
+    OD --> IMDS
+    SP --> IMDS
+    OD --> CW
+    SP --> CW
 ```
 
 ## Versioning
