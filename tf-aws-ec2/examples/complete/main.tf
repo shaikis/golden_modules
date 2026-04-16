@@ -83,55 +83,74 @@ module "sg" {
   revoke_rules_on_delete = true
 }
 
-module "ec2" {
-  source      = "../../"
-  name        = var.name
-  name_prefix = var.name_prefix
-  environment = var.environment
-  project     = var.project
-  owner       = var.owner
-  cost_center = var.cost_center
-  tags        = var.tags
+module "ec2_fleet" {
+  source = "git::https://github.com/shaikis/golden_modules.git//tf-aws-ec2?ref=main"
 
-  ami_id            = var.ami_id
-  instance_type     = var.instance_type
-  subnet_id         = var.subnet_id
-  key_name          = var.key_name
-  availability_zone = var.availability_zone
-  tenancy           = var.tenancy
-  placement_group   = var.placement_group
+  name_prefix = "app"
+  environment = "dev"
+  project     = "payments"
+  owner       = "cloud-team"
+  cost_center = "12345"
 
-  vpc_security_group_ids      = [module.sg.security_group_id]
-  iam_instance_profile        = module.role.instance_profile_name
-  associate_public_ip_address = var.associate_public_ip_address
-  private_ip                  = var.private_ip
-  secondary_private_ips       = var.secondary_private_ips
-  source_dest_check           = var.source_dest_check
+  instances = {
+    app01 = {
+      instance_type          = "t3.medium"
+      subnet_id              = "subnet-aaaa1111"
+      vpc_security_group_ids = ["sg-aaaa1111"]
+      create_eip             = true
 
-  user_data                   = var.user_data
-  user_data_base64            = var.user_data_base64
-  user_data_replace_on_change = var.user_data_replace_on_change
+      ebs_volumes = {
+        data01 = {
+          device_name = "/dev/sdf"
+          volume_size = 100
+          volume_type = "gp3"
+          iops        = 3000
+          throughput  = 125
+        }
+        data02 = {
+          device_name = "/dev/sdg"
+          volume_size = 200
+          volume_type = "gp3"
+          iops        = 3000
+          throughput  = 125
+        }
+      }
 
-  disable_api_termination              = var.disable_api_termination
-  disable_api_stop                     = var.disable_api_stop
-  instance_initiated_shutdown_behavior = var.instance_initiated_shutdown_behavior
-  monitoring                           = var.monitoring
-  get_password_data                    = var.get_password_data
+      tags = {
+        Role = "app"
+      }
+    }
 
-  root_volume_type                  = var.root_volume_type
-  root_volume_size                  = var.root_volume_size
-  root_volume_iops                  = var.root_volume_iops
-  root_volume_throughput            = var.root_volume_throughput
-  root_volume_encrypted             = var.root_volume_encrypted
-  root_volume_kms_key_id            = module.kms.key_arn
-  root_volume_delete_on_termination = var.root_volume_delete_on_termination
+    spot01 = {
+      use_spot               = true
+      spot_price             = "0.08"
+      instance_type          = "t3.large"
+      subnet_id              = "subnet-bbbb2222"
+      vpc_security_group_ids = ["sg-bbbb2222"]
 
-  ebs_volumes      = var.ebs_volumes
-  cpu_options      = var.cpu_options
-  cpu_credits      = var.cpu_credits
-  metadata_options = var.metadata_options
+      ebs_volumes = {
+        data01 = {
+          device_name = "/dev/sdf"
+          volume_size = 150
+        }
+      }
 
-  create_eip = var.create_eip
-  use_spot   = var.use_spot
-  spot_price = var.spot_price
+      tags = {
+        Role = "worker"
+      }
+    }
+
+    spot02 = {
+      use_spot               = true
+      spot_price             = "0.08"
+      instance_type          = "t3.large"
+      subnet_id              = "subnet-bbbb2222"
+      vpc_security_group_ids = ["sg-bbbb2222"]
+
+      tags = {
+        Role = "worker"
+      }
+    }
+  }
 }
+
