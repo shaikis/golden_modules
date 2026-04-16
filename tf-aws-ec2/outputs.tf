@@ -1,10 +1,58 @@
-output "instance_id" { value = var.use_spot ? null : aws_instance.this.id }
-output "instance_arn" { value = var.use_spot ? null : aws_instance.this.arn }
-output "private_ip" { value = var.use_spot ? null : aws_instance.this.private_ip }
-output "public_ip" { value = var.use_spot ? null : aws_instance.this.public_ip }
-output "private_dns" { value = var.use_spot ? null : aws_instance.this.private_dns }
-output "public_dns" { value = var.use_spot ? null : aws_instance.this.public_dns }
-output "availability_zone" { value = var.use_spot ? null : aws_instance.this.availability_zone }
-output "subnet_id" { value = var.use_spot ? null : aws_instance.this.subnet_id }
-output "eip_public_ip" { value = length(aws_eip.this) > 0 ? aws_eip.this[0].public_ip : null }
-output "spot_instance_id" { value = var.use_spot ? aws_spot_instance_request.this[0].spot_instance_id : null }
+output "instance_ids" {
+  value = {
+    ondemand = { for k, v in aws_instance.this : k => v.id }
+    spot     = { for k, v in aws_spot_instance_request.this : k => v.spot_instance_id }
+  }
+}
+
+output "instance_arns" {
+  value = {
+    for k, v in aws_instance.this : k => v.arn
+  }
+}
+
+output "private_ips" {
+  value = merge(
+    { for k, v in aws_instance.this : k => v.private_ip },
+    { for k, v in aws_spot_instance_request.this : k => v.private_ip }
+  )
+}
+
+output "public_ips" {
+  value = merge(
+    { for k, v in aws_instance.this : k => v.public_ip },
+    { for k, v in aws_spot_instance_request.this : k => v.public_ip }
+  )
+}
+
+output "private_dns" {
+  value = merge(
+    { for k, v in aws_instance.this : k => v.private_dns },
+    { for k, v in aws_spot_instance_request.this : k => v.private_dns }
+  )
+}
+
+output "public_dns" {
+  value = merge(
+    { for k, v in aws_instance.this : k => v.public_dns },
+    { for k, v in aws_spot_instance_request.this : k => v.public_dns }
+  )
+}
+
+output "availability_zones" {
+  value = merge(
+    { for k, v in aws_instance.this : k => v.availability_zone },
+    { for k, v in aws_spot_instance_request.this : k => v.availability_zone }
+  )
+}
+
+output "subnet_ids" {
+  value = merge(
+    { for k, v in aws_instance.this : k => v.subnet_id },
+    { for k, v in aws_spot_instance_request.this : k => v.subnet_id }
+  )
+}
+
+output "eip_public_ips" {
+  value = { for k, v in aws_eip.this : k => v.public_ip }
+}
