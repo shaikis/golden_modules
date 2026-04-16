@@ -29,13 +29,25 @@ locals {
 
   ami_id = var.ami_id != "" ? var.ami_id : data.aws_ami.amazon_linux[0].id
 
+  normalized_instances = {
+    for k, v in var.instances :
+    k => merge(v, {
+      ebs_volumes = {
+        for vol_name, vol in try(v.ebs_volumes, {}) :
+        vol_name => merge(vol, {
+          kms_key_id = try(vol.kms_key_id, null) != null ? vol.kms_key_id : try(v.root_volume_kms_key_id, null)
+        })
+      }
+    })
+  }
+
   ondemand_instances = {
-    for k, v in var.instances : k => v
+    for k, v in local.normalized_instances : k => v
     if !try(v.use_spot, false)
   }
 
   spot_instances = {
-    for k, v in var.instances : k => v
+    for k, v in local.normalized_instances : k => v
     if try(v.use_spot, false)
   }
 
