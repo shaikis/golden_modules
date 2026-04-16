@@ -1,7 +1,3 @@
-# ---------------------------------------------------------------------------
-# EC2 Instances - On Demand
-# ---------------------------------------------------------------------------
-
 resource "aws_instance" "this" {
   for_each = local.ondemand_instances
 
@@ -90,10 +86,6 @@ resource "aws_instance" "this" {
   }
 }
 
-# ---------------------------------------------------------------------------
-# EC2 Instances - Spot
-# ---------------------------------------------------------------------------
-
 resource "aws_spot_instance_request" "this" {
   for_each = local.spot_instances
 
@@ -120,6 +112,7 @@ resource "aws_spot_instance_request" "this" {
     http_endpoint               = each.value.metadata_options.http_endpoint
     http_tokens                 = each.value.metadata_options.http_tokens
     http_put_response_hop_limit = each.value.metadata_options.http_put_response_hop_limit
+    instance_metadata_tags      = each.value.metadata_options.instance_metadata_tags
   }
 
   root_block_device {
