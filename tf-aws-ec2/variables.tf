@@ -1,46 +1,44 @@
 variable "name_prefix" {
-  type    = string
-  default = ""
+  description = "Optional prefix added to each instance name."
+  type        = string
+  default     = ""
 }
 
 variable "environment" {
-  type    = string
-  default = "dev"
+  description = "Environment tag."
+  type        = string
+  default     = "dev"
 }
 
 variable "project" {
-  type    = string
-  default = ""
+  description = "Project tag."
+  type        = string
+  default     = ""
 }
 
 variable "owner" {
-  type    = string
-  default = ""
+  description = "Owner tag."
+  type        = string
+  default     = ""
 }
 
 variable "cost_center" {
-  type    = string
-  default = ""
+  description = "Cost center tag."
+  type        = string
+  default     = ""
 }
 
 variable "tags" {
-  type    = map(string)
-  default = {}
+  description = "Global tags applied to all resources."
+  type        = map(string)
+  default     = {}
 }
-
-# ---------------------------------------------------------------------------
-# AMI
-# ---------------------------------------------------------------------------
 
 variable "ami_id" {
   description = "AMI ID. If empty, the latest Amazon Linux 2023 AMI is used."
   type        = string
   default     = ""
 }
-
-# ---------------------------------------------------------------------------
-# Fleet instances
-# ---------------------------------------------------------------------------
 
 variable "instances" {
   description = "Map of EC2 instances. Each key becomes one instance."
@@ -90,8 +88,8 @@ variable "instances" {
       snapshot_id           = optional(string, null)
     })), {})
 
-    use_spot                        = optional(bool, false)
-    spot_price                      = optional(string, null)
+    use_spot                = optional(bool, false)
+    spot_price              = optional(string, null)
 
     cpu_options = optional(object({
       core_count       = number
@@ -115,6 +113,11 @@ variable "instances" {
     create_eip = optional(bool, false)
     tags       = optional(map(string), {})
   }))
+
+  validation {
+    condition     = length(var.instances) > 0
+    error_message = "At least one instance definition must be provided in var.instances."
+  }
 
   validation {
     condition = alltrue([
@@ -167,8 +170,7 @@ variable "instances" {
   validation {
     condition = alltrue(flatten([
       for inst in values(var.instances) : [
-        for vol in values(inst.ebs_volumes) :
-        vol.volume_size >= 1
+        for vol in values(inst.ebs_volumes) : vol.volume_size >= 1
       ]
     ]))
     error_message = "Each EBS volume must be at least 1 GiB."
@@ -216,8 +218,32 @@ variable "instances" {
   validation {
     condition = alltrue([
       for inst in values(var.instances) :
+      inst.metadata_options.http_put_response_hop_limit >= 1 && inst.metadata_options.http_put_response_hop_limit <= 64
+    ])
+    error_message = "metadata_options.http_put_response_hop_limit must be between 1 and 64."
+  }
+
+  validation {
+    condition = alltrue([
+      for inst in values(var.instances) :
+      contains(["enabled", "disabled"], inst.metadata_options.instance_metadata_tags)
+    ])
+    error_message = "metadata_options.instance_metadata_tags must be enabled or disabled."
+  }
+
+  validation {
+    condition = alltrue([
+      for inst in values(var.instances) :
       !(inst.use_spot && inst.create_eip)
     ])
     error_message = "create_eip is supported only for on-demand instances in this module."
+  }
+
+  validation {
+    condition = alltrue([
+      for inst in values(var.instances) :
+      !inst.use_spot || (inst.spot_price == null || trim(inst.spot_price) != "")
+    ])
+    error_message = "spot_price, when set, must be a non-empty string."
   }
 }
